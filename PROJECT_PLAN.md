@@ -14,7 +14,8 @@
 
 ## Milestone 2: complete task and workflow behavior
 
-- [ ] Extract feature modules and a shared workspace state provider as the app grows
+- [x] Extract feature modules and a shared workspace state provider
+- [x] Add separate route pages and project detail URLs with shared navigation
 - [ ] Custom workflow columns and ordering; migrate existing tasks safely
 - [ ] Accessible drag and drop with keyboard announcements and touch support
 - [ ] Subtasks and task dependencies with cycle prevention

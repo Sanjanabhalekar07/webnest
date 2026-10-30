@@ -33,8 +33,10 @@ The timeline currently lists delivery dates; it is not yet a Gantt chart. Sprint
 
 ## Architecture
 
-- `app/page.tsx`: server entry point.
-- `app/workspace.tsx`: interactive workspace, navigation, reusable table/dialog/editor components, filters, and derived reports.
+- `app/(workspace)/`: independent route pages and the shared layout.
+- `app/providers/workspace-provider.tsx`: shared workspace state, persistence, and lazily loaded editors.
+- `app/components/`: separate feature views, shared navigation, cards, tables, dialogs, and editors.
+- `app/lib/task-utils.ts`: shared task creation, date formatting, overdue checks, and progress calculations.
 - `app/lib/model.ts`: shared entities and deterministic first-run sample content (dates are relative to first launch).
 - `app/lib/storage.ts`: IndexedDB database lifecycle and transaction-based load/save operations.
 - `app/globals.css`: workspace tokens, component styles, dark appearance, and responsive layouts.
@@ -42,5 +44,7 @@ The timeline currently lists delivery dates; it is not yet a Gantt chart. Sprint
 All views derive from the same task collection. Mutations update the in-memory snapshot and queue complete snapshots in order. Save status tracks the newest revision. Failed saves retain the in-memory changes and expose a retry. Task/project deletion is confirmed; deleting a project also deletes its tasks. Archiving preserves tasks and removes them from active reports; restoring makes them visible again. Activity is capped at the newest 100 entries.
 
 ## Remaining milestones
+
+Navigation uses real URLs: `/`, `/tasks`, `/projects`, `/projects/[projectId]`, `/calendar`, `/reports`, `/activity`, and `/search?q=...`. Each page imports its own feature component. The shared route-group layout retains workspace data and pending saves during navigation. Direct visits load the same IndexedDB workspace.
 
 See [PROJECT_PLAN.md](PROJECT_PLAN.md) for the remaining implementation and validation work.
