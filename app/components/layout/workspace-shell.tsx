@@ -106,10 +106,23 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           className="brand"
           href="/"
           onClick={() => setMobileNav(false)}
-          aria-label="Orbit home"
+          aria-label="WebNest home"
         >
-          <span className="brand-mark">o</span>orbit
-          <span className="brand-dot">.</span>
+          <span className="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none">
+              <path
+                d="m6.5 10 4.75 13L16 14l4.75 9L25.5 10"
+                stroke="currentColor"
+                strokeWidth="3.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <circle cx="24.5" cy="6.5" r="2" fill="#d8ceff" />
+            </svg>
+          </span>
+          <span className="brand-wordmark">
+            Web<span>Nest</span>
+          </span>
         </Link>
         <div className="workspace-picker">
           <span className="workspace-icon">S</span>

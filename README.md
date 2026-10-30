@@ -1,4 +1,4 @@
-﻿# Orbit project workspace
+﻿# WebNest project workspace
 
 A project management frontend built with Next.js App Router, strict TypeScript, and Tailwind CSS. This checkout contains the first implementation milestone.
 
