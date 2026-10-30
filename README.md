@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+﻿# Orbit project workspace
 
-## Getting Started
+A project management frontend built with Next.js App Router, strict TypeScript, and Tailwind CSS. This checkout contains the first implementation milestone.
 
-First, run the development server:
+## Run locally
 
-```bash
+Requires Node.js 20.9 or newer and npm.
+
+```sh
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000. Use `npm run build` for a production build and `npm start` to serve it. System fonts keep builds independent of Google Fonts availability.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Implemented
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Responsive workspace shell and overview dashboard with project progress and overdue task counts.
+- Project creation, editing, archiving, restoration, and deletion.
+- Task creation, editing, deletion, assignment, priorities, labels, due dates, and status changes.
+- Task checklists and comments, saved with the task.
+- Kanban board with native drag and drop; keyboard and touch users can change status in the task editor.
+- Shared list, monthly calendar, and chronological delivery views.
+- Task search, project and priority filters, activity history, light/dark appearance.
+- Project completion, workload, task distribution, and sample sprint progress summaries.
+- IndexedDB persistence, first-run sample data, loading state, save feedback, and retry on save errors.
 
-## Learn More
+## Current assumptions
 
-To learn more about Next.js, take a look at the following resources:
+The app is a single-browser workspace with four sample members. Membership and roles are illustrative; there is no authentication, server, or collaboration sync. Data belongs to the current browser profile and origin. Clearing site data deletes the workspace. There is no real attachment upload or external notification service.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The timeline currently lists delivery dates; it is not yet a Gantt chart. Sprint options are sample values; creating and completing sprints and historical burndown are future work. Workflow columns are currently fixed. Theme preference currently lasts for the open session.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Architecture
 
-## Deploy on Vercel
+- `app/page.tsx`: server entry point.
+- `app/workspace.tsx`: interactive workspace, navigation, reusable table/dialog/editor components, filters, and derived reports.
+- `app/lib/model.ts`: shared entities and deterministic first-run sample content (dates are relative to first launch).
+- `app/lib/storage.ts`: IndexedDB database lifecycle and transaction-based load/save operations.
+- `app/globals.css`: workspace tokens, component styles, dark appearance, and responsive layouts.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+All views derive from the same task collection. Mutations update the in-memory snapshot and queue complete snapshots in order. Save status tracks the newest revision. Failed saves retain the in-memory changes and expose a retry. Task/project deletion is confirmed; deleting a project also deletes its tasks. Archiving preserves tasks and removes them from active reports; restoring makes them visible again. Activity is capped at the newest 100 entries.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Remaining milestones
+
+See [PROJECT_PLAN.md](PROJECT_PLAN.md) for the remaining implementation and validation work.
