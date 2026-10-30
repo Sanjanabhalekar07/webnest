@@ -81,7 +81,7 @@ export function ReportsView() {
         </section>
         <section className="panel">
           <h2>Task distribution</h2>
-          {statuses.map((status) => (
+          {data.columns.map((status) => (
             <div className="distribution" key={status}>
               <span>{status}</span>
               <div className="progress-track">

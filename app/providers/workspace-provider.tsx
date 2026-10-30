@@ -8,9 +8,23 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
-import type { Project, Task, WorkspaceData, Status } from "../lib/model";
+import {
+  statuses,
+  type Project,
+  type Task,
+  type WorkspaceData,
+  type Status,
+  type TaskViewPreferences,
+} from "../lib/model";
 import { loadWorkspace, saveWorkspace } from "../lib/storage";
 import { newTask } from "../lib/task-utils";
+import {
+  validateWorkspace,
+  saveTask,
+  removeTasks,
+  changeWorkflow,
+  defaultTaskView,
+} from "../lib/workspace-rules";
 const TaskEditor = dynamic(() => import("../components/tasks/task-editor"));
 const ProjectEditor = dynamic(
   () => import("../components/projects/project-editor"),
@@ -23,7 +37,7 @@ function useWorkspaceState() {
   );
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [dark, setDark] = useState(false);
+  const [notice, setNotice] = useState("");
   const dataRef = useRef<WorkspaceData | null>(null);
   const writes = useRef(Promise.resolve());
   const revision = useRef(0);
@@ -64,31 +78,77 @@ function useWorkspaceState() {
   }
   function update(
     change: (previous: WorkspaceData) => WorkspaceData,
-    message: string,
+    message?: string,
   ) {
-    if (!dataRef.current) return;
+    if (!dataRef.current) return false;
     const next = change(dataRef.current);
-    next.activity = [
-      {
-        id: crypto.randomUUID(),
-        text: message,
-        date: new Date().toISOString(),
-      },
-      ...next.activity,
-    ].slice(0, 100);
+    validateWorkspace(next);
+    if (message) {
+      next.activity = [
+        {
+          id: crypto.randomUUID(),
+          text: message,
+          date: new Date().toISOString(),
+        },
+        ...next.activity,
+      ].slice(0, 100);
+    }
     dataRef.current = next;
     setData(next);
     persist(next);
+    if (message) setNotice(message);
+    return true;
   }
   function moveTask(id: string, status: Status) {
-    update(
-      (previous) => ({
-        ...previous,
-        tasks: previous.tasks.map((task) =>
-          task.id === id ? { ...task, status } : task,
-        ),
-      }),
-      `Moved ${id} to ${status}`,
+    try {
+      return update(
+        (previous) => ({
+          ...previous,
+          tasks: previous.tasks.map((task) =>
+            task.id === id ? { ...task, status } : task,
+          ),
+        }),
+        `Moved ${id} to ${status}`,
+      );
+    } catch (reason) {
+      setNotice(
+        reason instanceof Error ? reason.message : "Task could not be moved.",
+      );
+      return false;
+    }
+  }
+  function setDark(dark: boolean) {
+    update((previous) => ({
+      ...previous,
+      preferences: { ...previous.preferences, theme: dark ? "dark" : "light" },
+    }));
+  }
+  function setViewPreferences(
+    key: string,
+    patch: Partial<TaskViewPreferences>,
+  ) {
+    update((previous) => ({
+      ...previous,
+      preferences: {
+        ...previous.preferences,
+        views: {
+          ...previous.preferences.views,
+          [key]: {
+            ...defaultTaskView,
+            ...previous.preferences.views[key],
+            ...patch,
+          },
+        },
+      },
+    }));
+  }
+  function setWorkflow(
+    columns: string[],
+    mapping: Record<string, string> = {},
+  ) {
+    return update(
+      (previous) => changeWorkflow(previous, columns, mapping),
+      "Updated the workspace workflow",
     );
   }
 
@@ -103,8 +163,11 @@ function useWorkspaceState() {
     allTasks,
     error,
     saving,
-    dark,
+    dark: data?.preferences.theme === "dark",
     setDark,
+    setWorkflow,
+    setViewPreferences,
+    notice,
     editingTask,
     setEditingTask,
     editingProject,
@@ -120,7 +183,14 @@ type WorkspaceState = ReturnType<typeof useWorkspaceState> & {
   data: WorkspaceData;
 };
 const Context = createContext<WorkspaceState | null>(null);
-const emptyWorkspace: WorkspaceData = { projects: [], tasks: [], activity: [] };
+const emptyWorkspace: WorkspaceData = {
+  schemaVersion: 2,
+  columns: [...statuses],
+  preferences: { theme: "light", views: {} },
+  projects: [],
+  tasks: [],
+  activity: [],
+};
 export function useWorkspace() {
   const value = useContext(Context);
   if (!value) throw Error("WorkspaceProvider is required");
@@ -144,34 +214,39 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         {children}
         {editingTask && (
           <TaskEditor
+            key={typeof editingTask === "string" ? "new" : editingTask.id}
             task={
               editingTask === "new"
                 ? newTask(projects[0]?.id || "")
                 : editingTask
             }
             projects={projects}
+            workspace={data}
+            onCreateSubtask={(parent) => {
+              update(
+                (previous) => saveTask(previous, parent),
+                `Updated ${parent.title}`,
+              );
+              setEditingTask({
+                ...newTask(
+                  parent.projectId,
+                  data.columns.includes("To do") ? "To do" : data.columns[0],
+                ),
+                parentId: parent.id,
+              });
+            }}
             onClose={() => setEditingTask(null)}
             onSave={(task) => {
               const exists = data.tasks.some((item) => item.id === task.id);
               update(
-                (previous) => ({
-                  ...previous,
-                  tasks: exists
-                    ? previous.tasks.map((item) =>
-                        item.id === task.id ? task : item,
-                      )
-                    : [...previous.tasks, task],
-                }),
+                (previous) => saveTask(previous, task),
                 `${exists ? "Updated" : "Created"} ${task.title}`,
               );
               setEditingTask(null);
             }}
             onDelete={(task) => {
               update(
-                (previous) => ({
-                  ...previous,
-                  tasks: previous.tasks.filter((item) => item.id !== task.id),
-                }),
+                (previous) => removeTasks(previous, [task.id]),
                 `Deleted ${task.title}`,
               );
               setEditingTask(null);
@@ -211,12 +286,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             onDelete={(project) => {
               update(
                 (previous) => ({
-                  ...previous,
+                  ...removeTasks(
+                    previous,
+                    previous.tasks
+                      .filter((task) => task.projectId === project.id)
+                      .map((task) => task.id),
+                  ),
                   projects: previous.projects.filter(
                     (item) => item.id !== project.id,
-                  ),
-                  tasks: previous.tasks.filter(
-                    (task) => task.projectId !== project.id,
                   ),
                 }),
                 `Deleted project ${project.name}`,

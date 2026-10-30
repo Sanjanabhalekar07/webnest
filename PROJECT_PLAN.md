@@ -16,12 +16,12 @@
 
 - [x] Extract feature modules and a shared workspace state provider
 - [x] Add separate route pages and project detail URLs with shared navigation
-- [ ] Custom workflow columns and ordering; migrate existing tasks safely
-- [ ] Accessible drag and drop with keyboard announcements and touch support
-- [ ] Subtasks and task dependencies with cycle prevention
-- [ ] Simulated attachments with metadata and clear size/type validation
-- [ ] Sorting, multi-field filters, and per-view saved preferences
-- [ ] Persistence schema validation and versioned migrations
+- [x] Custom workflow columns and ordering; migrate existing tasks safely
+- [x] Drag and drop with keyboard announcements, touch sensors, and an alternative status selector (browser/assistive-technology QA pending)
+- [x] Subtasks and task dependencies with cycle prevention
+- [x] Simulated attachments with metadata and clear size/type validation
+- [x] Sorting, multi-field filters, and per-view saved preferences
+- [x] Persistence schema validation and versioned migrations
 
 ## Milestone 3: sprint planning and advanced views
 
@@ -34,8 +34,10 @@
 ## Milestone 4: quality and delivery
 
 - [ ] Mock service layer with controlled latency and reproducible failure cases
-- [ ] Persistent appearance and notification read state
-- [ ] Automated tests for dependency rules, persistence, migrations, and shared-view consistency
+- [x] Persistent appearance
+- [ ] Notification read state
+- [x] Automated tests for dependency rules, workflow migration, attachment validation, filtering, and IndexedDB persistence
+- [ ] Automated browser tests for shared-view consistency
 - [ ] Browser workflow checks: edit, move, refresh, restart, archive/restore, and delete
 - [ ] Keyboard, screen-reader, mobile, and large-data performance checks
 - [ ] Demo script, architecture notes, limitations, and assessment preparation

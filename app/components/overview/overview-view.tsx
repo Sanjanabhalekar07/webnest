@@ -39,9 +39,8 @@ export function OverviewView() {
             color: "green",
           },
           {
-            title: "In progress",
-            value: allTasks.filter((task) => task.status === "In progress")
-              .length,
+            title: "Open tasks",
+            value: allTasks.filter((task) => task.status !== "Done").length,
             icon: "clock",
             detail: "Great things in the making",
             color: "blue",

@@ -6,32 +6,56 @@ import {
   type Task,
   type Project,
   type Status,
+  type WorkspaceData,
 } from "@/app/lib/model";
 import { Modal } from "../ui/modal";
+import { saveTask } from "@/app/lib/workspace-rules";
+import { TaskRelationships } from "./task-relationships";
+import { TaskAttachments } from "./task-attachments";
 export default function TaskEditor({
   task,
   projects,
   onClose,
   onSave,
   onDelete,
+  workspace,
+  onCreateSubtask,
 }: {
   task: Task;
   projects: Project[];
   onClose: () => void;
   onSave: (task: Task) => void;
   onDelete: (task: Task) => void;
+  workspace: WorkspaceData;
+  onCreateSubtask: (task: Task) => void;
 }) {
   const [draft, setDraft] = useState(task);
   const [check, setCheck] = useState("");
   const [comment, setComment] = useState("");
+  const [error, setError] = useState("");
+  function validatedSave(action: (task: Task) => void) {
+    try {
+      const cleaned = { ...draft, title: draft.title.trim() };
+      saveTask(workspace, cleaned);
+      action(cleaned);
+    } catch (reason) {
+      setError(
+        reason instanceof Error ? reason.message : "Task could not be saved.",
+      );
+    }
+  }
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (draft.title.trim() && draft.projectId)
-      onSave({ ...draft, title: draft.title.trim() });
+    validatedSave(onSave);
   }
   return (
     <Modal title={task.title ? task.id : "Create a task"} onClose={onClose}>
       <form onSubmit={submit} className="editor">
+        {error && (
+          <p className="validation-message" role="alert">
+            {error}
+          </p>
+        )}
         <label>
           Task name
           <input
@@ -63,7 +87,12 @@ export default function TaskEditor({
               required
               value={draft.projectId}
               onChange={(event) =>
-                setDraft({ ...draft, projectId: event.target.value })
+                setDraft({
+                  ...draft,
+                  projectId: event.target.value,
+                  parentId: null,
+                  dependencies: [],
+                })
               }
             >
               <option value="" disabled>
@@ -84,7 +113,7 @@ export default function TaskEditor({
                 setDraft({ ...draft, status: event.target.value as Status })
               }
             >
-              {statuses.map((status) => (
+              {workspace.columns.map((status) => (
                 <option key={status}>{status}</option>
               ))}
             </select>
@@ -152,6 +181,13 @@ export default function TaskEditor({
             }
           />
         </label>
+        <TaskRelationships
+          draft={draft}
+          tasks={workspace.tasks}
+          onChange={setDraft}
+          onCreateSubtask={() => validatedSave(onCreateSubtask)}
+        />
+        <TaskAttachments draft={draft} onChange={setDraft} />
         <div className="editor-section">
           <strong>Checklist</strong>
           {draft.checklist.map((item) => (

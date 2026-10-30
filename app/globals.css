@@ -1373,3 +1373,176 @@ select {
     background: #19182d70;
   }
 }
+/* Workflow and task detail enhancements */
+.field-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--muted, #9295a5);
+  line-height: 1.65;
+  margin: 0;
+}
+.validation-message {
+  border: 1px solid #e7b6a8;
+  background: #fbefeb;
+  color: #9e4e3c;
+  padding: 12px;
+  border-radius: 7px;
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0;
+}
+.relationship-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+.relationship-row strong {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.dependency-options {
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  max-height: 250px;
+  overflow: auto;
+}
+.dependency-options legend {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 5px;
+}
+.dependency-options .checklist-row {
+  display: flex;
+  align-items: center;
+}
+.dependency-options .checklist-row .status-pill {
+  margin-left: auto;
+}
+.attachment-picker input[type="file"] {
+  font-size: 11px;
+}
+.workflow-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.workflow-row input {
+  min-width: 0;
+  flex: 1;
+}
+.workflow-row .secondary {
+  padding: 9px;
+}
+.workflow-row .text-button {
+  min-width: 44px;
+}
+.task-filter-bar {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  padding: 14px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  margin-bottom: 13px;
+}
+.task-filter-bar > input {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px;
+  font-size: 11px;
+  min-width: 150px;
+  flex: 1;
+}
+.overdue-filter {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.task-result-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 10px;
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+.task-result-summary [role="status"] {
+  color: var(--purple);
+  max-width: 65%;
+}
+.task-title-button {
+  text-align: left;
+  display: block;
+  width: 100%;
+  font-size: 12px;
+  line-height: 1.6;
+  font-weight: 600;
+  padding: 0;
+}
+.drag-handle {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  cursor: grab;
+  padding: 3px;
+  touch-action: none;
+}
+.drag-handle:active {
+  cursor: grabbing;
+}
+.task-card.dragging {
+  position: relative;
+  box-shadow: 0 12px 30px #25283730;
+  opacity: 0.9;
+}
+.kanban-column.drop-target {
+  outline: 2px solid var(--purple);
+  outline-offset: -2px;
+}
+.card-move {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  margin-top: 13px;
+  padding-top: 10px;
+  font-size: 9px;
+  color: var(--muted);
+}
+.card-move select {
+  max-width: 70%;
+  font-size: 9px;
+  padding: 5px;
+}
+.blocked-label {
+  display: inline-block;
+  font-size: 9px;
+  background: #fcf0e8;
+  color: #aa7958;
+  padding: 4px 7px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+@media (max-width: 760px) {
+  .task-result-summary [role="status"] {
+    max-width: 100%;
+  }
+  .task-filter-bar select {
+    flex: 1;
+    max-width: 100%;
+  }
+}

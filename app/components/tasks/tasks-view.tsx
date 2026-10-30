@@ -1,14 +1,22 @@
-"use client";
+﻿"use client";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useWorkspace } from "@/app/providers/workspace-provider";
-import { members, statuses } from "@/app/lib/model";
-import { formatDate, newTask } from "@/app/lib/task-utils";
+import {
+  members,
+  defaultTaskView,
+  type TaskViewPreferences,
+} from "@/app/lib/model";
+import { selectTasks } from "@/app/lib/workspace-rules";
+import { formatDate } from "@/app/lib/task-utils";
 import { Icon } from "../ui/app-icon";
 import { PageHeading } from "../layout/page-heading";
 import { TaskTable } from "./task-table";
-import { TaskCard } from "./task-card";
+import { TaskBoard } from "./task-board";
+import { WorkflowEditor } from "./workflow-editor";
+
 export function TasksView({
   projectId: routeProjectId = "all",
   mine = false,
@@ -22,23 +30,50 @@ export function TasksView({
     allTasks,
     setEditingTask,
     setEditingProject,
-    update,
     moveTask,
+    setViewPreferences,
+    notice,
   } = useWorkspace();
   const router = useRouter();
-  const [projectFilter, setProjectFilter] = useState("all");
-  const projectId = mine ? projectFilter : routeProjectId;
-  const [priority, setPriority] = useState("All priorities");
-  const [layout, setLayout] = useState("Board");
+  const [workflowOpen, setWorkflowOpen] = useState(false);
+  const key = mine ? "my-tasks" : `project:${routeProjectId}`;
+  const preferences = { ...defaultTaskView, ...data.preferences.views[key] };
+  const projectId = mine
+    ? projects.some((project) => project.id === preferences.project)
+      ? preferences.project
+      : "all"
+    : routeProjectId;
   const selectedProject = projects.find(
     (project) => project.id === routeProjectId,
   );
-  const tasks = allTasks.filter(
-    (task) =>
-      (projectId === "all" || task.projectId === projectId) &&
-      (!mine || task.assignee === members[0]) &&
-      (priority === "All priorities" || task.priority === priority),
+  const scoped = allTasks.filter(
+    (task) => !mine || task.assignee === members[0],
   );
+  const effective = {
+    ...preferences,
+    project: projectId,
+    status: data.columns.includes(preferences.status)
+      ? preferences.status
+      : "all",
+  };
+  const tasks = selectTasks(
+    scoped,
+    effective,
+    new Date().toLocaleDateString("en-CA"),
+  );
+  const labels = [
+    ...new Set(
+      scoped.flatMap((task) =>
+        task.labels
+          .split(",")
+          .map((label) => label.trim())
+          .filter(Boolean),
+      ),
+    ),
+  ].sort();
+  function set(patch: Partial<TaskViewPreferences>) {
+    setViewPreferences(key, patch);
+  }
   if (routeProjectId !== "all" && !selectedProject)
     return (
       <>
@@ -51,6 +86,7 @@ export function TasksView({
         </section>
       </>
     );
+
   return (
     <>
       <PageHeading
@@ -60,11 +96,12 @@ export function TasksView({
       />
       <div className="view-toolbar">
         <div className="tabs">
-          {["Board", "List", "Timeline"].map((tab) => (
+          {(["Board", "List", "Timeline"] as const).map((tab) => (
             <button
               key={tab}
-              className={layout === tab ? "selected" : ""}
-              onClick={() => setLayout(tab)}
+              aria-pressed={preferences.layout === tab}
+              className={preferences.layout === tab ? "selected" : ""}
+              onClick={() => set({ layout: tab })}
             >
               <Icon
                 name={
@@ -81,37 +118,9 @@ export function TasksView({
           ))}
         </div>
         <div className="filter-controls">
-          <select
-            aria-label="Filter project"
-            value={projectId}
-            onChange={(event) => {
-              if (mine) setProjectFilter(event.target.value);
-              else
-                router.push(
-                  event.target.value === "all"
-                    ? "/projects"
-                    : `/projects/${event.target.value}`,
-                );
-            }}
-          >
-            <option value="all">All projects</option>
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label="Filter priority"
-            value={priority}
-            onChange={(event) => setPriority(event.target.value)}
-          >
-            {["All priorities", "Low", "Medium", "High", "Urgent"].map(
-              (item) => (
-                <option key={item}>{item}</option>
-              ),
-            )}
-          </select>
+          <button className="secondary" onClick={() => setWorkflowOpen(true)}>
+            Customize workflow
+          </button>
           <button
             className="secondary"
             onClick={() => setEditingProject(selectedProject || "new")}
@@ -120,48 +129,126 @@ export function TasksView({
           </button>
         </div>
       </div>
-      {layout === "Board" ? (
-        <div className="kanban">
-          {statuses.map((status, index) => (
-            <section
-              className={`kanban-column column-${index}`}
-              key={status}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={(event) => {
-                event.preventDefault();
-                const id = event.dataTransfer.getData("text/plain");
-                if (tasks.some((task) => task.id === id)) moveTask(id, status);
-              }}
-            >
-              <h2>
-                <span className="status-dot" />
-                {status}
-                <span className="count">
-                  {tasks.filter((task) => task.status === status).length}
-                </span>
-              </h2>
-              {tasks
-                .filter((task) => task.status === status)
-                .map((task) => (
-                  <TaskCard key={task.id} task={task} onEdit={setEditingTask} />
-                ))}
-              <button
-                className="add-task"
-                onClick={() =>
-                  setEditingTask({
-                    ...newTask(
-                      projectId === "all" ? projects[0]?.id || "" : projectId,
-                    ),
-                    status,
-                  })
-                }
-              >
-                <Icon name="plus" size={15} /> Add task
-              </button>
-            </section>
+      <section className="task-filter-bar" aria-label="Task filters">
+        <input
+          aria-label="Search this view"
+          placeholder="Search these tasks..."
+          value={preferences.query}
+          onChange={(event) => set({ query: event.target.value })}
+        />
+        <select
+          aria-label="Filter project"
+          value={projectId}
+          onChange={(event) => {
+            if (mine) set({ project: event.target.value });
+            else
+              router.push(
+                event.target.value === "all"
+                  ? "/projects"
+                  : `/projects/${event.target.value}`,
+              );
+          }}
+        >
+          <option value="all">All projects</option>
+          {projects.map((project) => (
+            <option key={project.id} value={project.id}>
+              {project.name}
+            </option>
           ))}
-        </div>
-      ) : layout === "List" ? (
+        </select>
+        <select
+          aria-label="Filter priority"
+          value={preferences.priority}
+          onChange={(event) => set({ priority: event.target.value })}
+        >
+          <option value="all">All priorities</option>
+          {["Low", "Medium", "High", "Urgent"].map((item) => (
+            <option key={item}>{item}</option>
+          ))}
+        </select>
+        <select
+          aria-label="Filter status"
+          value={effective.status}
+          onChange={(event) => set({ status: event.target.value })}
+        >
+          <option value="all">All statuses</option>
+          {data.columns.map((item) => (
+            <option key={item}>{item}</option>
+          ))}
+        </select>
+        {!mine && (
+          <select
+            aria-label="Filter assignee"
+            value={preferences.assignee}
+            onChange={(event) => set({ assignee: event.target.value })}
+          >
+            <option value="all">All assignees</option>
+            {members.map((item) => (
+              <option key={item}>{item}</option>
+            ))}
+          </select>
+        )}
+        <select
+          aria-label="Filter label"
+          value={preferences.label}
+          onChange={(event) => set({ label: event.target.value })}
+        >
+          <option value="all">All labels</option>
+          {labels.map((item) => (
+            <option key={item}>{item}</option>
+          ))}
+        </select>
+        <select
+          aria-label="Sort tasks"
+          value={preferences.sort}
+          onChange={(event) =>
+            set({ sort: event.target.value as TaskViewPreferences["sort"] })
+          }
+        >
+          <option value="due">Due date</option>
+          <option value="priority">Priority</option>
+          <option value="title">Title</option>
+        </select>
+        <label className="overdue-filter">
+          <input
+            type="checkbox"
+            checked={preferences.overdue}
+            onChange={(event) => set({ overdue: event.target.checked })}
+          />
+          Overdue only
+        </label>
+        <button
+          className="text-button"
+          onClick={() =>
+            set({ ...defaultTaskView, layout: preferences.layout })
+          }
+        >
+          Reset filters
+        </button>
+      </section>
+      <div className="task-result-summary">
+        <span>
+          {tasks.length} matching task{tasks.length === 1 ? "" : "s"} · View
+          preferences are saved
+        </span>
+        <span
+          role="status"
+          aria-live="polite"
+          aria-label="Task movement update"
+        >
+          {notice}
+        </span>
+      </div>
+      {preferences.layout === "Board" ? (
+        <TaskBoard
+          tasks={tasks}
+          allTasks={allTasks}
+          columns={data.columns}
+          projectId={projectId === "all" ? projects[0]?.id || "" : projectId}
+          onEdit={setEditingTask}
+          onMove={moveTask}
+        />
+      ) : preferences.layout === "List" ? (
         <section className="panel">
           <TaskTable
             tasks={tasks}
@@ -178,57 +265,25 @@ export function TasksView({
             <h2>Delivery timeline</h2>
             <span className="muted">Tasks grouped by due date</span>
           </div>
-          {[...tasks]
-            .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
-            .map((task) => (
-              <button
-                className="timeline-row"
-                key={task.id}
-                onClick={() => setEditingTask(task)}
-              >
-                <span>{formatDate(task.dueDate)}</span>
-                <strong>{task.title}</strong>
-                <span
-                  className={`status-pill status-${task.status.replaceAll(" ", "-").toLowerCase()}`}
-                >
-                  {task.status}
-                </span>
-              </button>
-            ))}
+          {tasks.map((task) => (
+            <button
+              className="timeline-row"
+              key={task.id}
+              onClick={() => setEditingTask(task)}
+            >
+              <span>{formatDate(task.dueDate)}</span>
+              <strong>{task.title}</strong>
+              <span className="status-pill">{task.status}</span>
+            </button>
+          ))}
+          {!tasks.length && (
+            <p className="empty">No tasks match your filters.</p>
+          )}
         </section>
       )}
-      {!mine &&
-        projectId === "all" &&
-        data.projects.some((project) => project.archived) && (
-          <section className="panel archived-projects">
-            <h2>Archived projects</h2>
-            {data.projects
-              .filter((project) => project.archived)
-              .map((project) => (
-                <div key={project.id}>
-                  <span>{project.name}</span>
-                  <button
-                    className="text-button"
-                    onClick={() =>
-                      update(
-                        (previous) => ({
-                          ...previous,
-                          projects: previous.projects.map((item) =>
-                            item.id === project.id
-                              ? { ...item, archived: false }
-                              : item,
-                          ),
-                        }),
-                        `Restored ${project.name}`,
-                      )
-                    }
-                  >
-                    Restore
-                  </button>
-                </div>
-              ))}
-          </section>
-        )}
+      {workflowOpen && (
+        <WorkflowEditor onClose={() => setWorkflowOpen(false)} />
+      )}
     </>
   );
 }

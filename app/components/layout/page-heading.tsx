@@ -15,7 +15,7 @@ export function PageHeading({
   overview?: boolean;
   projectId?: string;
 }) {
-  const { projects, setEditingTask } = useWorkspace();
+  const { data, projects, setEditingTask } = useWorkspace();
   return (
     <div className="page-heading">
       <div>
@@ -37,7 +37,12 @@ export function PageHeading({
       <button
         className="primary"
         onClick={() =>
-          setEditingTask(newTask(projectId || projects[0]?.id || ""))
+          setEditingTask(
+            newTask(
+              projectId || projects[0]?.id || "",
+              data.columns.includes("To do") ? "To do" : data.columns[0],
+            ),
+          )
         }
       >
         <Icon name="plus" size={18} />

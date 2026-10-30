@@ -14,13 +14,13 @@ export const percent = (tasks: Task[]) =>
           100,
       )
     : 0;
-export function newTask(projectId: string): Task {
+export function newTask(projectId: string, status = "To do"): Task {
   return {
     id: `ORB-${crypto.randomUUID().slice(0, 6).toUpperCase()}`,
     projectId,
     title: "",
     description: "",
-    status: "To do",
+    status,
     priority: "Medium",
     assignee: members[0],
     dueDate: new Date().toLocaleDateString("en-CA"),
@@ -28,5 +28,8 @@ export function newTask(projectId: string): Task {
     sprint: "Backlog",
     checklist: [],
     comments: [],
+    parentId: null,
+    dependencies: [],
+    attachments: [],
   };
 }

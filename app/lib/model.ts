@@ -5,7 +5,36 @@ export const statuses = [
   "In review",
   "Done",
 ] as const;
-export type Status = (typeof statuses)[number];
+export type Status = string;
+export type Attachment = {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  date: string;
+};
+export type TaskViewPreferences = {
+  layout: "Board" | "List" | "Timeline";
+  project: string;
+  priority: string;
+  status: string;
+  assignee: string;
+  label: string;
+  query: string;
+  overdue: boolean;
+  sort: "due" | "title" | "priority";
+};
+export const defaultTaskView: TaskViewPreferences = {
+  layout: "Board",
+  project: "all",
+  priority: "all",
+  status: "all",
+  assignee: "all",
+  label: "all",
+  query: "",
+  overdue: false,
+  sort: "due",
+};
 export type Project = {
   id: string;
   name: string;
@@ -26,8 +55,17 @@ export type Task = {
   sprint: string;
   checklist: { id: string; title: string; done: boolean }[];
   comments: { id: string; text: string; date: string }[];
+  parentId: string | null;
+  dependencies: string[];
+  attachments: Attachment[];
 };
 export type WorkspaceData = {
+  schemaVersion: 2;
+  columns: string[];
+  preferences: {
+    theme: "light" | "dark";
+    views: Record<string, TaskViewPreferences>;
+  };
   projects: Project[];
   tasks: Task[];
   activity: { id: string; text: string; date: string }[];
@@ -129,6 +167,9 @@ export function seedData(): WorkspaceData {
     ["brand", "Prepare launch assets", "To do", "Urgent", 7, "Branding"],
   ];
   return {
+    schemaVersion: 2,
+    columns: [...statuses],
+    preferences: { theme: "light", views: {} },
     projects,
     tasks: rows.map((row, index) => ({
       id: `ORB-${101 + index}`,
@@ -143,6 +184,9 @@ export function seedData(): WorkspaceData {
       sprint: index < 8 ? "Sprint 01" : "Backlog",
       checklist: [],
       comments: [],
+      parentId: null,
+      dependencies: [],
+      attachments: [],
     })),
     activity: [
       {
