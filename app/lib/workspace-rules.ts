@@ -5,7 +5,11 @@
   type Task,
   type TaskViewPreferences,
   type WorkspaceData,
+  type Sprint,
 } from "./model";
+import { validDate } from "./date-utils";
+import { migrateSprintLabels, validateSprints } from "./sprint-rules";
+export { validDate } from "./date-utils";
 
 export const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
 const attachmentExtensions = new Set([
@@ -90,13 +94,6 @@ function timestamp(value: unknown) {
   if (!Number.isFinite(Date.parse(date)))
     throw new Error("Saved workspace contains an invalid timestamp.");
   return date;
-}
-export function validDate(value: string) {
-  return (
-    /^\d{4}-\d{2}-\d{2}$/.test(value) &&
-    Number.isFinite(Date.parse(value)) &&
-    new Date(value).toISOString().slice(0, 10) === value
-  );
 }
 function unique(values: string[], name: string) {
   if (
@@ -219,6 +216,50 @@ export function validateWorkspace(data: WorkspaceData) {
     task.attachments.forEach(validateAttachment);
   }
   validateRelations(data.tasks);
+  validateSprints(data);
+}
+function integer(value: unknown) {
+  if (typeof value !== "number" || !Number.isInteger(value))
+    throw new Error("Invalid sprint task count.");
+  return value;
+}
+function parseSprint(value: unknown): Sprint {
+  const sprint = record(value);
+  return {
+    id: text(sprint.id),
+    projectId: text(sprint.projectId),
+    name: text(sprint.name),
+    goal: text(sprint.goal),
+    startDate: text(sprint.startDate),
+    endDate: text(sprint.endDate),
+    state: oneOf(sprint.state, ["planned", "active", "completed"]),
+    startedAt: sprint.startedAt === null ? null : timestamp(sprint.startedAt),
+    completedAt:
+      sprint.completedAt === null ? null : timestamp(sprint.completedAt),
+    baselineTotal:
+      sprint.baselineTotal === null ? null : integer(sprint.baselineTotal),
+    initialRemaining:
+      sprint.initialRemaining === null
+        ? null
+        : integer(sprint.initialRemaining),
+    snapshots: list(sprint.snapshots).map((value) => {
+      const point = record(value);
+      return {
+        date: text(point.date),
+        total: integer(point.total),
+        remaining: integer(point.remaining),
+      };
+    }),
+    closedTasks: list(sprint.closedTasks).map((value) => {
+      const task = record(value);
+      return {
+        id: text(task.id),
+        title: text(task.title),
+        status: text(task.status),
+        assignee: text(task.assignee),
+      };
+    }),
+  };
 }
 function parseView(value: unknown): TaskViewPreferences {
   const view = record(value);
@@ -238,15 +279,16 @@ function parseView(value: unknown): TaskViewPreferences {
 export function parseWorkspace(input: unknown): WorkspaceData {
   const raw = record(input);
   const legacy = raw.schemaVersion === undefined || raw.schemaVersion === 1;
-  if (!legacy && raw.schemaVersion !== 2)
+  if (!legacy && raw.schemaVersion !== 2 && raw.schemaVersion !== 3)
     throw new Error(
       "This workspace was saved by a newer version of WebNest. Update the app before opening it.",
     );
   const preferences = legacy
     ? { theme: "light", views: {} }
     : record(raw.preferences);
-  const data: WorkspaceData = {
-    schemaVersion: 2,
+  let data: WorkspaceData = {
+    schemaVersion: 3,
+    sprints: raw.schemaVersion === 3 ? list(raw.sprints).map(parseSprint) : [],
     columns: legacy ? [...statuses] : strings(raw.columns),
     preferences: {
       theme: oneOf(preferences.theme, ["light", "dark"]),
@@ -323,10 +365,19 @@ export function parseWorkspace(input: unknown): WorkspaceData {
       };
     }),
   };
+  if (raw.schemaVersion !== 3) data = migrateSprintLabels(data);
   validateWorkspace(data);
   return data;
 }
 export function saveTask(data: WorkspaceData, task: Task): WorkspaceData {
+  const target = data.sprints.find((sprint) => sprint.id === task.sprint);
+  if (
+    target?.state === "completed" &&
+    !data.tasks.some(
+      (existing) => existing.id === task.id && existing.sprint === task.sprint,
+    )
+  )
+    throw new Error("Completed sprints cannot receive new tasks.");
   const next = {
     ...data,
     tasks: data.tasks.some((item) => item.id === task.id)

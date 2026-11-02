@@ -1,5 +1,6 @@
 import { seedData, type WorkspaceData } from "./model";
 import { parseWorkspace } from "./workspace-rules";
+import { recordActiveSprints } from "./sprint-rules";
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -20,8 +21,13 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
     const request = transaction.objectStore("workspace").get("data");
     request.onsuccess = () => {
       try {
-        loaded = parseWorkspace(request.result ?? seedData());
-        if (!request.result || request.result.schemaVersion !== 2)
+        const parsed = parseWorkspace(request.result ?? seedData());
+        loaded = recordActiveSprints(parsed);
+        if (
+          !request.result ||
+          request.result.schemaVersion !== 3 ||
+          loaded !== parsed
+        )
           transaction.objectStore("workspace").put(loaded, "data");
       } catch (reason) {
         loadError =

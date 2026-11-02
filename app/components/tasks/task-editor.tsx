@@ -90,6 +90,7 @@ export default function TaskEditor({
                 setDraft({
                   ...draft,
                   projectId: event.target.value,
+                  sprint: "Backlog",
                   parentId: null,
                   dependencies: [],
                 })
@@ -166,9 +167,23 @@ export default function TaskEditor({
                 setDraft({ ...draft, sprint: event.target.value })
               }
             >
-              <option>Backlog</option>
-              <option>Sprint 01</option>
-              <option>Sprint 02</option>
+              <option value="Backlog">Backlog</option>
+              {workspace.sprints
+                .filter(
+                  (sprint) =>
+                    sprint.projectId === draft.projectId &&
+                    (sprint.state !== "completed" ||
+                      sprint.id === draft.sprint),
+                )
+                .map((sprint) => (
+                  <option
+                    key={sprint.id}
+                    value={sprint.id}
+                    disabled={sprint.state === "completed"}
+                  >
+                    {sprint.name} · {sprint.state}
+                  </option>
+                ))}
             </select>
           </label>
         </div>

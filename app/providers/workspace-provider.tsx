@@ -25,6 +25,7 @@ import {
   changeWorkflow,
   defaultTaskView,
 } from "../lib/workspace-rules";
+import { recordActiveSprints } from "../lib/sprint-rules";
 const TaskEditor = dynamic(() => import("../components/tasks/task-editor"));
 const ProjectEditor = dynamic(
   () => import("../components/projects/project-editor"),
@@ -81,17 +82,21 @@ function useWorkspaceState() {
     message?: string,
   ) {
     if (!dataRef.current) return false;
-    const next = change(dataRef.current);
+    let next = recordActiveSprints(change(dataRef.current));
     validateWorkspace(next);
+    if (next === dataRef.current && !message) return true;
     if (message) {
-      next.activity = [
-        {
-          id: crypto.randomUUID(),
-          text: message,
-          date: new Date().toISOString(),
-        },
-        ...next.activity,
-      ].slice(0, 100);
+      next = {
+        ...next,
+        activity: [
+          {
+            id: crypto.randomUUID(),
+            text: message,
+            date: new Date().toISOString(),
+          },
+          ...next.activity,
+        ].slice(0, 100),
+      };
     }
     dataRef.current = next;
     setData(next);
@@ -117,6 +122,26 @@ function useWorkspaceState() {
       return false;
     }
   }
+  useEffect(() => {
+    const recordDay = () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        update((previous) => previous);
+      } catch (reason) {
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : "Sprint history could not be updated.",
+        );
+      }
+    };
+    const timer = window.setInterval(recordDay, 60000);
+    document.addEventListener("visibilitychange", recordDay);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", recordDay);
+    };
+  }, []);
   function setDark(dark: boolean) {
     update((previous) => ({
       ...previous,
@@ -184,7 +209,8 @@ type WorkspaceState = ReturnType<typeof useWorkspaceState> & {
 };
 const Context = createContext<WorkspaceState | null>(null);
 const emptyWorkspace: WorkspaceData = {
-  schemaVersion: 2,
+  schemaVersion: 3,
+  sprints: [],
   columns: [...statuses],
   preferences: { theme: "light", views: {} },
   projects: [],
@@ -233,6 +259,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
                   data.columns.includes("To do") ? "To do" : data.columns[0],
                 ),
                 parentId: parent.id,
+                sprint: parent.sprint,
               });
             }}
             onClose={() => setEditingTask(null)}
@@ -294,6 +321,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
                   ),
                   projects: previous.projects.filter(
                     (item) => item.id !== project.id,
+                  ),
+                  sprints: previous.sprints.filter(
+                    (sprint) => sprint.projectId !== project.id,
                   ),
                 }),
                 `Deleted project ${project.name}`,

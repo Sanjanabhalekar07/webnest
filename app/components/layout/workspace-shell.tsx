@@ -11,6 +11,7 @@ const navigation = [
   { href: "/", name: "Overview", icon: "grid" },
   { href: "/tasks", name: "My tasks", icon: "check" },
   { href: "/projects", name: "Projects", icon: "folder" },
+  { href: "/sprints", name: "Sprints", icon: "flag" },
   { href: "/calendar", name: "Calendar", icon: "calendar" },
   { href: "/reports", name: "Reports", icon: "chart" },
   { href: "/activity", name: "Activity", icon: "bell" },

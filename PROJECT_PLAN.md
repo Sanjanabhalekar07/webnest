@@ -25,9 +25,9 @@
 
 ## Milestone 3: sprint planning and advanced views
 
-- [ ] Create/edit/start/complete sprints with valid date ranges
-- [ ] Backlog planning and task assignment to sprints
-- [ ] Daily completion snapshots and historical burndown
+- [x] Create/edit/start/complete sprints with valid date ranges
+- [x] Backlog planning and task assignment to sprints
+- [x] Recorded daily snapshots, baseline/scope tracking, and historical burndown (browser QA pending)
 - [ ] Timeline/Gantt bars, start dates, and dependency display
 - [ ] Project member role management
 

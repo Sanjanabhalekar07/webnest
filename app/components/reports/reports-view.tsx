@@ -4,6 +4,7 @@ import { useWorkspace } from "@/app/providers/workspace-provider";
 import { initials, members, statuses } from "@/app/lib/model";
 import { percent } from "@/app/lib/task-utils";
 import { Icon } from "../ui/app-icon";
+import { SprintSummary } from "../sprints/sprint-summary";
 import { PageHeading } from "../layout/page-heading";
 export function ReportsView() {
   const {
@@ -60,25 +61,7 @@ export function ReportsView() {
             </div>
           ))}
         </section>
-        <section className="panel">
-          <h2>Sprint 01</h2>
-          <p className="muted">
-            Current sprint ·{" "}
-            {allTasks.filter((task) => task.sprint === "Sprint 01").length}{" "}
-            planned tasks
-          </p>
-          <div className="sprint-value">
-            {percent(allTasks.filter((task) => task.sprint === "Sprint 01"))}
-            <small>% complete</small>
-          </div>
-          <div className="progress-track">
-            <span
-              style={{
-                width: `${percent(allTasks.filter((task) => task.sprint === "Sprint 01"))}%`,
-              }}
-            />
-          </div>
-        </section>
+        <SprintSummary />
         <section className="panel">
           <h2>Task distribution</h2>
           {data.columns.map((status) => (

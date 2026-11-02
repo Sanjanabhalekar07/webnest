@@ -31,14 +31,22 @@ test("migrates the original workspace without losing task IDs, comments, or proj
     text: "Keep this note",
     date: new Date().toISOString(),
   });
-  const { schemaVersion, columns, preferences, ...legacy } = data;
+  const { schemaVersion, columns, preferences, sprints, ...legacy } = data;
   void schemaVersion;
   void columns;
   void preferences;
+  void sprints;
   const migrated = parseWorkspace(legacy);
-  assert.equal(migrated.schemaVersion, 2);
+  assert.equal(migrated.schemaVersion, 3);
   assert.deepEqual(migrated.projects, data.projects);
-  assert.deepEqual(migrated.tasks, data.tasks);
+  assert.deepEqual(
+    migrated.tasks.map(({ sprint, ...task }) => task),
+    data.tasks.map(({ sprint, ...task }) => task),
+  );
+  assert.equal(migrated.sprints.length, 1);
+  assert.ok(
+    migrated.tasks.every((task) => task.sprint === migrated.sprints[0].id),
+  );
   assert.deepEqual(migrated.preferences, { theme: "light", views: {} });
 });
 test("rejects direct, indirect, and mixed subtask/dependency cycles", () => {
@@ -249,12 +257,13 @@ test("IndexedDB saves and reloads relationships, custom columns, attachments, an
   assert.deepEqual(await loadWorkspace(), data);
 });
 test("IndexedDB migrates legacy saves and leaves unsupported data untouched", async () => {
-  const { schemaVersion, columns, preferences, ...legacy } = sample();
+  const { schemaVersion, columns, preferences, sprints, ...legacy } = sample();
   void schemaVersion;
   void columns;
   void preferences;
+  void sprints;
   await rawWrite(legacy);
-  assert.equal((await loadWorkspace()).schemaVersion, 2);
+  assert.equal((await loadWorkspace()).schemaVersion, 3);
   const raw = { schemaVersion: 99, userContent: "Do not overwrite me" };
   await rawWrite(raw);
   await assert.rejects(loadWorkspace(), /newer version/);

@@ -66,7 +66,11 @@ export default function ProjectEditor({
                 className="danger-button"
                 type="button"
                 onClick={() => {
-                  if (window.confirm("Delete this project and all its tasks?"))
+                  if (
+                    window.confirm(
+                      "Delete this project, its tasks, and its sprint history?",
+                    )
+                  )
                     onDelete(project);
                 }}
               >

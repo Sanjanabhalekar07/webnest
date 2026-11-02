@@ -59,8 +59,29 @@ export type Task = {
   dependencies: string[];
   attachments: Attachment[];
 };
+export type SprintSnapshot = { date: string; total: number; remaining: number };
+export type Sprint = {
+  id: string;
+  projectId: string;
+  name: string;
+  goal: string;
+  startDate: string;
+  endDate: string;
+  state: "planned" | "active" | "completed";
+  startedAt: string | null;
+  completedAt: string | null;
+  baselineTotal: number | null;
+  initialRemaining: number | null;
+  snapshots: SprintSnapshot[];
+  closedTasks: Pick<Task, "id" | "title" | "status" | "assignee">[];
+};
+export type SprintDraft = Pick<
+  Sprint,
+  "id" | "projectId" | "name" | "goal" | "startDate" | "endDate"
+>;
 export type WorkspaceData = {
-  schemaVersion: 2;
+  schemaVersion: 3;
+  sprints: Sprint[];
   columns: string[];
   preferences: {
     theme: "light" | "dark";
@@ -167,7 +188,22 @@ export function seedData(): WorkspaceData {
     ["brand", "Prepare launch assets", "To do", "Urgent", 7, "Branding"],
   ];
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
+    sprints: projects.map((project) => ({
+      id: `sprint-${project.id}-01`,
+      projectId: project.id,
+      name: "Sprint 01",
+      goal: "Deliver the next useful step for this project.",
+      startDate: date(0),
+      endDate: date(13),
+      state: "planned",
+      startedAt: null,
+      completedAt: null,
+      baselineTotal: null,
+      initialRemaining: null,
+      snapshots: [],
+      closedTasks: [],
+    })),
     columns: [...statuses],
     preferences: { theme: "light", views: {} },
     projects,
@@ -181,7 +217,7 @@ export function seedData(): WorkspaceData {
       dueDate: date(row[4]),
       labels: row[5],
       assignee: members[index % members.length],
-      sprint: index < 8 ? "Sprint 01" : "Backlog",
+      sprint: index < 8 ? `sprint-${row[0]}-01` : "Backlog",
       checklist: [],
       comments: [],
       parentId: null,
