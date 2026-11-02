@@ -35,12 +35,17 @@ export const defaultTaskView: TaskViewPreferences = {
   overdue: false,
   sort: "due",
 };
+export type ProjectMember = {
+  name: string;
+  role: "Owner" | "Member" | "Viewer";
+};
 export type Project = {
   id: string;
   name: string;
   description: string;
   color: string;
   archived: boolean;
+  members: ProjectMember[];
 };
 export type Task = {
   id: string;
@@ -51,6 +56,7 @@ export type Task = {
   priority: "Low" | "Medium" | "High" | "Urgent";
   assignee: string;
   dueDate: string;
+  startDate: string;
   labels: string;
   sprint: string;
   checklist: { id: string; title: string; done: boolean }[];
@@ -80,7 +86,7 @@ export type SprintDraft = Pick<
   "id" | "projectId" | "name" | "goal" | "startDate" | "endDate"
 >;
 export type WorkspaceData = {
-  schemaVersion: 3;
+  schemaVersion: 4;
   sprints: Sprint[];
   columns: string[];
   preferences: {
@@ -97,6 +103,23 @@ export const members = [
   "Sam Wilson",
   "Taylor Kim",
 ];
+export function defaultProjectMembers(
+  names: string[] = members,
+): ProjectMember[] {
+  return [...new Set(names)].map((name, index) => ({
+    name,
+    role: index === 0 ? "Owner" : "Member",
+  }));
+}
+export function defaultAssignee(project?: Project) {
+  const eligible =
+    project?.members.filter((member) => member.role !== "Viewer") || [];
+  return (
+    eligible.find((member) => member.name === members[0])?.name ||
+    eligible[0]?.name ||
+    members[0]
+  );
+}
 export const initials = (name: string) =>
   name
     .split(" ")
@@ -115,6 +138,7 @@ export function seedData(): WorkspaceData {
       description: "A fresh digital experience for our next chapter.",
       color: "#7765e8",
       archived: false,
+      members: defaultProjectMembers(),
     },
     {
       id: "mobile",
@@ -122,6 +146,7 @@ export function seedData(): WorkspaceData {
       description: "Bring the workspace wherever work happens.",
       color: "#e6a34f",
       archived: false,
+      members: defaultProjectMembers(),
     },
     {
       id: "brand",
@@ -129,6 +154,7 @@ export function seedData(): WorkspaceData {
       description: "Make every touchpoint feel unmistakably us.",
       color: "#56a992",
       archived: false,
+      members: defaultProjectMembers(),
     },
   ];
   const rows: [string, string, Status, Task["priority"], number, string][] = [
@@ -188,7 +214,7 @@ export function seedData(): WorkspaceData {
     ["brand", "Prepare launch assets", "To do", "Urgent", 7, "Branding"],
   ];
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     sprints: projects.map((project) => ({
       id: `sprint-${project.id}-01`,
       projectId: project.id,
@@ -215,6 +241,7 @@ export function seedData(): WorkspaceData {
       status: row[2],
       priority: row[3],
       dueDate: date(row[4]),
+      startDate: date(Math.min(0, row[4] - 2)),
       labels: row[5],
       assignee: members[index % members.length],
       sprint: index < 8 ? `sprint-${row[0]}-01` : "Backlog",

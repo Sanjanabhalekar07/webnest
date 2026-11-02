@@ -28,8 +28,8 @@
 - [x] Create/edit/start/complete sprints with valid date ranges
 - [x] Backlog planning and task assignment to sprints
 - [x] Recorded daily snapshots, baseline/scope tracking, and historical burndown (browser QA pending)
-- [ ] Timeline/Gantt bars, start dates, and dependency display
-- [ ] Project member role management
+- [x] Timeline/Gantt bars, start dates, dependency display, zoom/navigation, and accessible schedule table (browser QA pending)
+- [x] Project member role management with required ownership and explicit task reassignment
 
 ## Milestone 4: quality and delivery
 

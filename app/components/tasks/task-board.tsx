@@ -12,7 +12,8 @@ import {
   useDroppable,
   type KeyboardCoordinateGetter,
 } from "@dnd-kit/core";
-import type { Task } from "@/app/lib/model";
+import { defaultAssignee, type Task } from "@/app/lib/model";
+import { useWorkspace } from "@/app/providers/workspace-provider";
 import { newTask } from "@/app/lib/task-utils";
 import { TaskCard } from "./task-card";
 import { Icon } from "../ui/app-icon";
@@ -36,6 +37,7 @@ function Column({
   onEdit: (task: Task) => void;
   onMove: (id: string, status: string) => void;
 }) {
+  const { projects } = useWorkspace();
   const { setNodeRef, isOver } = useDroppable({
     id: `column:${name}`,
     data: { status: name },
@@ -70,7 +72,17 @@ function Column({
       ))}
       <button
         className="add-task"
-        onClick={() => onEdit(newTask(projectId, name))}
+        onClick={() =>
+          onEdit(
+            newTask(
+              projectId,
+              name,
+              defaultAssignee(
+                projects.find((project) => project.id === projectId),
+              ),
+            ),
+          )
+        }
       >
         <Icon name="plus" size={15} />
         Add task

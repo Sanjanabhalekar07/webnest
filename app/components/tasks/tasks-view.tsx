@@ -10,7 +10,8 @@ import {
   type TaskViewPreferences,
 } from "@/app/lib/model";
 import { selectTasks } from "@/app/lib/workspace-rules";
-import { formatDate } from "@/app/lib/task-utils";
+import { GanttTimeline } from "./gantt-timeline";
+import { ProjectMembers } from "../projects/project-members";
 import { Icon } from "../ui/app-icon";
 import { PageHeading } from "../layout/page-heading";
 import { TaskTable } from "./task-table";
@@ -36,6 +37,7 @@ export function TasksView({
   } = useWorkspace();
   const router = useRouter();
   const [workflowOpen, setWorkflowOpen] = useState(false);
+  const [membersOpen, setMembersOpen] = useState(false);
   const key = mine ? "my-tasks" : `project:${routeProjectId}`;
   const preferences = { ...defaultTaskView, ...data.preferences.views[key] };
   const projectId = mine
@@ -49,9 +51,24 @@ export function TasksView({
   const scoped = allTasks.filter(
     (task) => !mine || task.assignee === members[0],
   );
+  const assignees = [
+    ...new Set(
+      projects
+        .filter((project) => projectId === "all" || project.id === projectId)
+        .flatMap((project) =>
+          project.members
+            .filter((member) => member.role !== "Viewer")
+            .map((member) => member.name),
+        ),
+    ),
+  ].sort();
   const effective = {
     ...preferences,
     project: projectId,
+    assignee:
+      !mine && assignees.includes(preferences.assignee)
+        ? preferences.assignee
+        : "all",
     status: data.columns.includes(preferences.status)
       ? preferences.status
       : "all",
@@ -118,6 +135,11 @@ export function TasksView({
           ))}
         </div>
         <div className="filter-controls">
+          {selectedProject && (
+            <button className="secondary" onClick={() => setMembersOpen(true)}>
+              Members ({selectedProject.members.length})
+            </button>
+          )}
           <button className="secondary" onClick={() => setWorkflowOpen(true)}>
             Customize workflow
           </button>
@@ -179,11 +201,11 @@ export function TasksView({
         {!mine && (
           <select
             aria-label="Filter assignee"
-            value={preferences.assignee}
+            value={effective.assignee}
             onChange={(event) => set({ assignee: event.target.value })}
           >
             <option value="all">All assignees</option>
-            {members.map((item) => (
+            {assignees.map((item) => (
               <option key={item}>{item}</option>
             ))}
           </select>
@@ -260,26 +282,17 @@ export function TasksView({
           )}
         </section>
       ) : (
-        <section className="panel">
-          <div className="section-heading">
-            <h2>Delivery timeline</h2>
-            <span className="muted">Tasks grouped by due date</span>
-          </div>
-          {tasks.map((task) => (
-            <button
-              className="timeline-row"
-              key={task.id}
-              onClick={() => setEditingTask(task)}
-            >
-              <span>{formatDate(task.dueDate)}</span>
-              <strong>{task.title}</strong>
-              <span className="status-pill">{task.status}</span>
-            </button>
-          ))}
-          {!tasks.length && (
-            <p className="empty">No tasks match your filters.</p>
-          )}
-        </section>
+        <GanttTimeline
+          tasks={tasks}
+          allTasks={allTasks}
+          onEdit={setEditingTask}
+        />
+      )}
+      {membersOpen && selectedProject && (
+        <ProjectMembers
+          project={selectedProject}
+          onClose={() => setMembersOpen(false)}
+        />
       )}
       {workflowOpen && (
         <WorkflowEditor onClose={() => setWorkflowOpen(false)} />

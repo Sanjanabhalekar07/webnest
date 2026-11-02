@@ -14,6 +14,7 @@ export default function ProjectEditor({
   onDelete: (project: Project) => void;
 }) {
   const [draft, setDraft] = useState(project);
+  const [error, setError] = useState("");
   return (
     <Modal
       title={project.name ? "Edit project" : "Create a project"}
@@ -23,9 +24,24 @@ export default function ProjectEditor({
         className="editor"
         onSubmit={(event) => {
           event.preventDefault();
-          if (draft.name.trim()) onSave({ ...draft, name: draft.name.trim() });
+          if (draft.name.trim()) {
+            try {
+              onSave({ ...draft, name: draft.name.trim() });
+            } catch (reason) {
+              setError(
+                reason instanceof Error
+                  ? reason.message
+                  : "Project could not be saved.",
+              );
+            }
+          }
         }}
       >
+        {error && (
+          <p className="validation-message" role="alert">
+            {error}
+          </p>
+        )}
         <label>
           Project name
           <input

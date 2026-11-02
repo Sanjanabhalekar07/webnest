@@ -2,6 +2,7 @@
 
 import { useWorkspace } from "@/app/providers/workspace-provider";
 import { newTask } from "@/app/lib/task-utils";
+import { defaultAssignee } from "@/app/lib/model";
 import { Icon } from "../ui/app-icon";
 
 export function PageHeading({
@@ -41,6 +42,11 @@ export function PageHeading({
             newTask(
               projectId || projects[0]?.id || "",
               data.columns.includes("To do") ? "To do" : data.columns[0],
+              defaultAssignee(
+                projects.find(
+                  (project) => project.id === (projectId || projects[0]?.id),
+                ),
+              ),
             ),
           )
         }

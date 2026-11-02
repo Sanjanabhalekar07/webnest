@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { initials, members, type Project, type Task } from "@/app/lib/model";
+import { initials, type Project, type Task } from "@/app/lib/model";
 import { percent } from "@/app/lib/task-utils";
 import { Icon } from "../ui/app-icon";
 
@@ -46,16 +46,18 @@ export function ProjectCard({
       </div>
       <div className="project-card-footer">
         <div className="avatar-stack">
-          {members.slice(0, 3).map((member, index) => (
+          {project.members.slice(0, 3).map((member, index) => (
             <span
               className={`avatar small avatar-${index}`}
-              key={member}
-              title={member}
+              key={member.name}
+              title={`${member.name} · ${member.role}`}
             >
-              {initials(member)}
+              {initials(member.name)}
             </span>
           ))}
-          <span className="extra-members">+1</span>
+          {project.members.length > 3 && (
+            <span className="extra-members">+{project.members.length - 3}</span>
+          )}
         </div>
         <span>
           <Icon name="check" size={14} />

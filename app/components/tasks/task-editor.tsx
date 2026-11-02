@@ -1,8 +1,7 @@
 "use client";
 import { useState, type FormEvent } from "react";
 import {
-  members,
-  statuses,
+  defaultAssignee,
   type Task,
   type Project,
   type Status,
@@ -90,6 +89,11 @@ export default function TaskEditor({
                 setDraft({
                   ...draft,
                   projectId: event.target.value,
+                  assignee: defaultAssignee(
+                    projects.find(
+                      (project) => project.id === event.target.value,
+                    ),
+                  ),
                   sprint: "Backlog",
                   parentId: null,
                   dependencies: [],
@@ -143,16 +147,36 @@ export default function TaskEditor({
                 setDraft({ ...draft, assignee: event.target.value })
               }
             >
-              {members.map((member) => (
-                <option key={member}>{member}</option>
-              ))}
+              {(
+                projects.find((project) => project.id === draft.projectId)
+                  ?.members || []
+              )
+                .filter((member) => member.role !== "Viewer")
+                .map((member) => (
+                  <option key={member.name} value={member.name}>
+                    {member.name}
+                  </option>
+                ))}
             </select>
+          </label>
+          <label>
+            Start date
+            <input
+              required
+              type="date"
+              max={draft.dueDate || undefined}
+              value={draft.startDate}
+              onChange={(event) =>
+                setDraft({ ...draft, startDate: event.target.value })
+              }
+            />
           </label>
           <label>
             Due date
             <input
               required
               type="date"
+              min={draft.startDate || undefined}
               value={draft.dueDate}
               onChange={(event) =>
                 setDraft({ ...draft, dueDate: event.target.value })

@@ -258,7 +258,7 @@ test("version 2 sprint labels become separate planned project sprints without fa
     schemaVersion: 2,
     sprints: undefined,
   });
-  assert.equal(migrated.schemaVersion, 3);
+  assert.equal(migrated.schemaVersion, 4);
   assert.equal(migrated.sprints.length, 2);
   assert.equal(migrated.tasks[0].sprint, migrated.tasks[1].sprint);
   assert.notEqual(migrated.tasks[0].sprint, migrated.tasks[2].sprint);

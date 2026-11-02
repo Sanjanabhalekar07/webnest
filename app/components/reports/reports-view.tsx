@@ -1,20 +1,19 @@
 "use client";
-import { useState } from "react";
 import { useWorkspace } from "@/app/providers/workspace-provider";
-import { initials, members, statuses } from "@/app/lib/model";
+import { initials } from "@/app/lib/model";
 import { percent } from "@/app/lib/task-utils";
-import { Icon } from "../ui/app-icon";
 import { SprintSummary } from "../sprints/sprint-summary";
 import { PageHeading } from "../layout/page-heading";
 export function ReportsView() {
-  const {
-    data,
-    projects,
-    allTasks: tasks,
-    allTasks,
-    setEditingTask,
-  } = useWorkspace();
+  const { data, projects, allTasks } = useWorkspace();
 
+  const team = [
+    ...new Set(
+      projects.flatMap((project) =>
+        project.members.map((member) => member.name),
+      ),
+    ),
+  ].sort();
   return (
     <>
       <PageHeading title="Reports" />
@@ -45,7 +44,7 @@ export function ReportsView() {
         </section>
         <section className="panel">
           <h2>Team workload</h2>
-          {members.map((member) => (
+          {team.map((member) => (
             <div className="workload-row" key={member}>
               <span className="avatar small">{initials(member)}</span>
               <span>{member}</span>

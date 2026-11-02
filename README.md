@@ -1,6 +1,6 @@
 ﻿# WebNest project workspace
 
-A project management frontend built with Next.js App Router, strict TypeScript, and Tailwind CSS. The workspace foundation, task/workflow milestone, and sprint planning are implemented.
+A project management frontend built with Next.js App Router, strict TypeScript, and Tailwind CSS. The workspace, task/workflow, sprint planning, Gantt timeline, and project membership features are implemented.
 
 ## Run locally
 
@@ -22,7 +22,8 @@ Open http://localhost:3000. Use `npm run build` for a production build and `npm 
 - Simulated attachments with file metadata, extension/MIME validation, a 10 MB limit, and up to five attachments per task.
 - Configurable workspace workflow: add, rename, reorder, and remove columns with explicit task migration. Done remains the completion column.
 - Kanban movement using mouse, touch, or keyboard through dnd-kit, live announcements, and an alternative status selector on each card.
-- Shared list, monthly calendar, and chronological delivery views.
+- Shared list, monthly calendar, and Gantt timeline views with start/due dates, dependency arrows, overlap warnings, zoom, date navigation, and an accessible schedule table.
+- Project member management with Owner/Member/Viewer roles, actual roster avatars, and explicit reassignment when removing assignees or making them Viewers.
 - Task search and combined project, priority, status, assignee, label, overdue, and text filters, with sorting and saved preferences for each task page.
 - Activity history and persistent light/dark appearance.
 - Project-specific sprint creation, editing, start/completion, bulk backlog planning, and task assignment.
@@ -32,9 +33,9 @@ Open http://localhost:3000. Use `npm run build` for a production build and `npm 
 
 ## Current assumptions
 
-The app is a single-browser workspace with four sample members. Membership and roles are illustrative; there is no authentication, server, or collaboration sync. Data belongs to the current browser profile and origin. Clearing site data deletes the workspace. There is no real attachment upload or external notification service.
+The app is a single-browser workspace, initially populated with four sample members. It operates as the sample workspace administrator. Project roles enforce local ownership and assignment rules; they do not provide authenticated authorization or invite real users. There is no authentication, server, or collaboration sync. Data belongs to the current browser profile and origin. Clearing site data deletes the workspace. There is no real attachment upload or external notification service.
 
-The timeline currently lists delivery dates; it is not yet a Gantt chart. Project member roles and a mock service layer remain future work. Workflow configuration is shared across projects. Task order within a column follows the selected sort, rather than manual card ranking.
+The timeline displays inclusive calendar-day ranges and warns about overlapping prerequisite dates. It does not automatically reschedule dependencies or offer drag-to-resize scheduling; select a bar or task label to edit dates. Fit tasks is capped at a one-year display window; use date navigation to inspect longer ranges. A mock service layer and notification read state remain future work. Workflow configuration is shared across projects. Task order within a column follows the selected sort, rather than manual card ranking.
 
 ## Architecture
 
@@ -45,6 +46,8 @@ The timeline currently lists delivery dates; it is not yet a Gantt chart. Projec
 - `app/lib/workspace-rules.ts`: schema parsing, migration, task and workflow validation, deletion cleanup, and task filtering/sorting.
 - `app/lib/sprint-rules.ts`: sprint lifecycle, task assignment, daily observations, and migration of legacy sprint labels.
 - `app/lib/date-utils.ts`: date validation, local calendar days, and date arithmetic.
+- `app/lib/project-rules.ts`: project roster validation, ownership invariants, reassignment, and membership migration.
+- `app/lib/timeline-rules.ts`: inclusive date geometry, clipping, and dependency/overlap information.
 - `app/components/sprints/`: sprint planning, lifecycle editor, reports, and accessible burndown visualization.
 - `app/lib/model.ts`: shared entities and deterministic first-run sample content (dates are relative to first launch).
 - `app/lib/storage.ts`: IndexedDB database lifecycle and transaction-based load/save operations.
@@ -54,7 +57,9 @@ All views derive from the same task collection. Mutations update the in-memory s
 
 Dependencies and parents must belong to the same project. Completion edges (dependencies plus subtasks) cannot form cycles. A task cannot become Done until all dependencies and subtasks are Done; reopen completed dependent/parent tasks before reopening prerequisites. Deleting a task unlinks its dependencies and promotes its subtasks to independent tasks. Moving a task to another project is rejected if it would invalidate existing relationships.
 
-Storage schema version 3 migrates both the original workspace and version 2 in the existing IndexedDB database, retaining project/task IDs, attachments, relationships, and preferences. Old sprint labels become separate planned sprints within each project, with default dates to review and no invented history. Invalid or newer saved data is rejected without overwriting it. The legacy database name is retained to preserve existing browser data. Attachments store metadata only, and cannot be downloaded or previewed.
+Storage schema version 4 migrates versions 1–3 in the existing IndexedDB database, retaining project/task IDs, attachments, relationships, sprint records, frozen reports, and preferences. Existing tasks receive a one-day start/due schedule on their original due date. Existing assignees are included in their project rosters alongside the original sample members, with Alex as Owner. Old sprint labels (versions 1–2) become separate planned sprints within each project, with default dates to review and no invented history. Invalid or newer saved data is rejected without overwriting it. The legacy database name is retained to preserve existing browser data. Attachments store metadata only, and cannot be downloaded or previewed.
+
+Every project must retain at least one Owner. Owners and Members can receive tasks; Viewers cannot. Removing an assignee or changing them to Viewer requires explicitly choosing another eligible member for all their tasks. This includes current completed tasks, while frozen sprint reports retain their original recorded assignees. Custom project member names are supported and appear in assignee choices, filters, workload reports, and avatars. New projects initially include the current sample admin as Owner.
 
 ## Sprint rules
 
@@ -77,6 +82,8 @@ To explore this milestone:
 5. Combine filters and choose a sort. Refresh the page to confirm preferences and theme are retained.
 6. Open **Sprints**, select a project, and create a sprint with today's date in its range. Select backlog tasks and choose **Add selected to sprint**.
 7. Start the sprint, edit a task's status, and inspect its burndown snapshot table. Complete the sprint to see unfinished tasks return to the backlog while the closed report stays fixed.
+8. Open a project's **Timeline** tab. Edit task start/due dates, inspect dependency arrows, use the date/zoom controls, and open **View timeline as a table** to inspect prerequisites hidden by filters.
+9. Choose **Members** on a project task page. Add a member, change their role, or remove an assignee after choosing a replacement. Attempting to remove the last Owner or assign a Viewer is rejected.
 
 Browser interaction and assistive-technology checks are still pending; the browser automation host was unavailable in this environment.
 

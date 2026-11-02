@@ -10,6 +10,9 @@ import {
 } from "react";
 import {
   statuses,
+  members,
+  defaultProjectMembers,
+  defaultAssignee,
   type Project,
   type Task,
   type WorkspaceData,
@@ -177,13 +180,18 @@ function useWorkspaceState() {
     );
   }
 
-  const projects = data?.projects.filter((project) => !project.archived) || [];
+  const projects =
+    data?.schemaVersion === 4
+      ? data.projects.filter((project) => !project.archived)
+      : [];
   const activeIds = new Set(projects.map((project) => project.id));
   const allTasks =
-    data?.tasks.filter((task) => activeIds.has(task.projectId)) || [];
+    data?.schemaVersion === 4
+      ? data.tasks.filter((task) => activeIds.has(task.projectId))
+      : [];
   return {
     data,
-    ready: data !== null,
+    ready: data?.schemaVersion === 4,
     projects,
     allTasks,
     error,
@@ -209,7 +217,7 @@ type WorkspaceState = ReturnType<typeof useWorkspaceState> & {
 };
 const Context = createContext<WorkspaceState | null>(null);
 const emptyWorkspace: WorkspaceData = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   sprints: [],
   columns: [...statuses],
   preferences: { theme: "light", views: {} },
@@ -233,7 +241,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     setEditingProject,
     update,
   } = state;
-  const data = state.data ?? emptyWorkspace;
+  const data = state.data?.schemaVersion === 4 ? state.data : emptyWorkspace;
   return (
     <Context.Provider value={{ ...state, data }}>
       <div className={`workspace ${dark ? "dark" : ""}`}>
@@ -243,7 +251,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             key={typeof editingTask === "string" ? "new" : editingTask.id}
             task={
               editingTask === "new"
-                ? newTask(projects[0]?.id || "")
+                ? newTask(
+                    projects[0]?.id || "",
+                    data.columns.includes("To do") ? "To do" : data.columns[0],
+                    defaultAssignee(projects[0]),
+                  )
                 : editingTask
             }
             projects={projects}
@@ -257,6 +269,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
                 ...newTask(
                   parent.projectId,
                   data.columns.includes("To do") ? "To do" : data.columns[0],
+                  parent.assignee,
                 ),
                 parentId: parent.id,
                 sprint: parent.sprint,
@@ -290,6 +303,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
                     description: "",
                     color: "#7765e8",
                     archived: false,
+                    members: defaultProjectMembers([members[0]]),
                   }
                 : editingProject
             }

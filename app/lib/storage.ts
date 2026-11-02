@@ -25,7 +25,7 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
         loaded = recordActiveSprints(parsed);
         if (
           !request.result ||
-          request.result.schemaVersion !== 3 ||
+          request.result.schemaVersion !== 4 ||
           loaded !== parsed
         )
           transaction.objectStore("workspace").put(loaded, "data");

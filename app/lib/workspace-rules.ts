@@ -9,6 +9,7 @@
 } from "./model";
 import { validDate } from "./date-utils";
 import { migrateSprintLabels, validateSprints } from "./sprint-rules";
+import { migrateMembership, validateMembership } from "./project-rules";
 export { validDate } from "./date-utils";
 
 export const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
@@ -198,10 +199,12 @@ export function validateWorkspace(data: WorkspaceData) {
     if (
       !task.title.trim() ||
       task.title.length > 160 ||
-      !validDate(task.dueDate)
+      !validDate(task.dueDate) ||
+      !validDate(task.startDate) ||
+      task.startDate > task.dueDate
     )
       throw new Error(
-        "Tasks need a title of up to 160 characters and a valid due date.",
+        "Tasks need a title of up to 160 characters, a valid start date, and a due date on or after the start date.",
       );
     if (!projectIds.has(task.projectId) || !data.columns.includes(task.status))
       throw new Error(
@@ -217,6 +220,7 @@ export function validateWorkspace(data: WorkspaceData) {
   }
   validateRelations(data.tasks);
   validateSprints(data);
+  validateMembership(data);
 }
 function integer(value: unknown) {
   if (typeof value !== "number" || !Number.isInteger(value))
@@ -279,7 +283,12 @@ function parseView(value: unknown): TaskViewPreferences {
 export function parseWorkspace(input: unknown): WorkspaceData {
   const raw = record(input);
   const legacy = raw.schemaVersion === undefined || raw.schemaVersion === 1;
-  if (!legacy && raw.schemaVersion !== 2 && raw.schemaVersion !== 3)
+  if (
+    !legacy &&
+    raw.schemaVersion !== 2 &&
+    raw.schemaVersion !== 3 &&
+    raw.schemaVersion !== 4
+  )
     throw new Error(
       "This workspace was saved by a newer version of WebNest. Update the app before opening it.",
     );
@@ -287,8 +296,11 @@ export function parseWorkspace(input: unknown): WorkspaceData {
     ? { theme: "light", views: {} }
     : record(raw.preferences);
   let data: WorkspaceData = {
-    schemaVersion: 3,
-    sprints: raw.schemaVersion === 3 ? list(raw.sprints).map(parseSprint) : [],
+    schemaVersion: 4,
+    sprints:
+      raw.schemaVersion === 3 || raw.schemaVersion === 4
+        ? list(raw.sprints).map(parseSprint)
+        : [],
     columns: legacy ? [...statuses] : strings(raw.columns),
     preferences: {
       theme: oneOf(preferences.theme, ["light", "dark"]),
@@ -307,6 +319,16 @@ export function parseWorkspace(input: unknown): WorkspaceData {
         description: text(p.description),
         color: text(p.color),
         archived: bool(p.archived),
+        members:
+          raw.schemaVersion === 4
+            ? list(p.members).map((value) => {
+                const member = record(value);
+                return {
+                  name: text(member.name),
+                  role: oneOf(member.role, ["Owner", "Member", "Viewer"]),
+                };
+              })
+            : [],
       };
     }),
     tasks: list(raw.tasks).map((value) => {
@@ -320,6 +342,8 @@ export function parseWorkspace(input: unknown): WorkspaceData {
         priority: oneOf(t.priority, ["Low", "Medium", "High", "Urgent"]),
         assignee: text(t.assignee),
         dueDate: text(t.dueDate),
+        startDate:
+          raw.schemaVersion === 4 ? text(t.startDate) : text(t.dueDate),
         labels: text(t.labels),
         sprint: text(t.sprint),
         checklist: list(t.checklist).map((value) => {
@@ -365,7 +389,9 @@ export function parseWorkspace(input: unknown): WorkspaceData {
       };
     }),
   };
-  if (raw.schemaVersion !== 3) data = migrateSprintLabels(data);
+  if (raw.schemaVersion !== 3 && raw.schemaVersion !== 4)
+    data = migrateSprintLabels(data);
+  if (raw.schemaVersion !== 4) data = migrateMembership(data);
   validateWorkspace(data);
   return data;
 }
