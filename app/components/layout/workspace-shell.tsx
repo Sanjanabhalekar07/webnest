@@ -4,8 +4,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useState, type FormEvent, type ReactNode } from "react";
 import { members } from "@/app/lib/model";
+import { accountInitials } from "@/app/lib/auth";
+import { useAuth } from "@/app/providers/auth-provider";
 import { useWorkspace } from "@/app/providers/workspace-provider";
 import { Icon } from "../ui/app-icon";
+import { AccountDialog } from "../auth/account-dialog";
 
 const navigation = [
   { href: "/", name: "Overview", icon: "grid" },
@@ -81,8 +84,12 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     loading,
     unreadCount,
   } = useWorkspace();
+  const { user } = useAuth();
   const router = useRouter();
   const [mobileNav, setMobileNav] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const displayName = user?.name || "Account";
+  const displayInitials = accountInitials(displayName);
 
   function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -200,13 +207,17 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
             <Icon name="sun" />
             {dark ? "Light appearance" : "Dark appearance"}
           </button>
-          <div className="profile">
-            <span className="avatar">AM</span>
+          <button
+            className="profile profile-button"
+            onClick={() => setAccountOpen(true)}
+            aria-label="Open account settings"
+          >
+            <span className="avatar">{displayInitials}</span>
             <span>
-              <strong>Alex Morgan</strong>
-              <small>Workspace admin</small>
+              <strong>{displayName}</strong>
+              <small>{user?.email || "Workspace member"}</small>
             </span>
-          </div>
+          </button>
         </div>
       </aside>
       <div className="main-shell">
@@ -255,7 +266,13 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
                 </span>
               )}
             </Link>
-            <span className="avatar small">AM</span>
+            <button
+              className="avatar small top-avatar"
+              onClick={() => setAccountOpen(true)}
+              aria-label="Open account settings"
+            >
+              {displayInitials}
+            </button>
           </div>
         </header>
         <main className="main-content">
@@ -291,6 +308,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           </footer>
         </main>
       </div>
+      {accountOpen && <AccountDialog onClose={() => setAccountOpen(false)} />}
     </>
   );
 }
