@@ -2139,17 +2139,60 @@ select {
   font-size: 10px;
   line-height: 1.6;
 }
+.account-modal {
+  position: fixed;
+  z-index: 120;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: #12131db8;
+  backdrop-filter: blur(6px);
+  animation: account-overlay-in 160ms ease-out;
+}
 .account-dialog {
-  width: min(100%, 440px);
+  width: min(100%, 420px);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 28px 80px #090a12a6;
+  animation: account-card-in 180ms ease-out;
+}
+.account-dialog .modal-header {
+  padding: 22px 24px 18px;
+}
+.account-dialog .modal-header h2 {
+  margin: 5px 0 0;
+  font-size: 19px;
+}
+.account-dialog .close {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+}
+.account-dialog .close:hover {
+  background: var(--bg);
+  color: var(--text);
 }
 .account-identity {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 22px 0;
-  padding: 13px;
-  border-radius: 8px;
+  margin: 20px 24px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
   background: var(--bg);
+}
+.account-identity .avatar {
+  width: 38px;
+  height: 38px;
 }
 .account-identity strong,
 .account-identity small {
@@ -2160,18 +2203,61 @@ select {
   color: var(--muted);
   font-size: 11px;
 }
+.account-name-field {
+  margin: 0 24px;
+}
+.account-help {
+  margin: 8px 24px 20px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+.account-dialog .form-error {
+  margin: 0 24px 16px;
+}
 .account-actions {
+  padding: 16px 24px 20px;
   justify-content: space-between;
 }
 .account-actions > span {
   display: flex;
   gap: 8px;
 }
-.danger {
-  color: #bd3b52;
+.logout-button {
+  padding: 8px 10px;
+  border: 1px solid #cf506766;
+  border-radius: 7px;
+  color: #d85b70;
+  font-size: 11px;
+  font-weight: 600;
+}
+.logout-button:hover {
+  border-color: #d85b70;
+  background: #d85b7015;
+}
+@keyframes account-overlay-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes account-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
 }
 @media (max-width: 520px) {
   .auth-card {
     padding: 28px 22px;
+  }
+  .account-modal {
+    padding: 12px;
+  }
+  .account-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+  .account-actions > span {
+    justify-content: flex-end;
   }
 }

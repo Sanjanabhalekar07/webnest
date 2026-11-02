@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { accountInitials } from "../../lib/auth";
 import { useAuth } from "../../providers/auth-provider";
 
 export function AccountDialog({ onClose }: { onClose: () => void }) {
   const { user, rename, logout } = useAuth();
+  const router = useRouter();
   const [name, setName] = useState(user?.name || "");
   const [error, setError] = useState("");
   if (!user) return null;
@@ -26,12 +28,15 @@ export function AccountDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="modal"
+      className="account-modal"
       role="dialog"
       aria-modal="true"
       aria-labelledby="account-title"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
     >
-      <form className="modal-card account-dialog" onSubmit={save}>
+      <form className="account-dialog" onSubmit={save}>
         <div className="modal-header">
           <div>
             <p className="eyebrow">YOUR ACCOUNT</p>
@@ -64,6 +69,9 @@ export function AccountDialog({ onClose }: { onClose: () => void }) {
             autoFocus
           />
         </label>
+        <p className="account-help">
+          This name appears in the WebNest navigation for this browser.
+        </p>
         {error && (
           <p className="form-error" role="alert">
             {error}
@@ -72,10 +80,11 @@ export function AccountDialog({ onClose }: { onClose: () => void }) {
         <div className="modal-footer account-actions">
           <button
             type="button"
-            className="text-button danger"
+            className="logout-button"
             onClick={() => {
               logout();
               onClose();
+              router.replace("/login");
             }}
           >
             Log out
