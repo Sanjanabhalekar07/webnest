@@ -37,7 +37,7 @@ test("migrates the original workspace without losing task IDs, comments, or proj
   void preferences;
   void sprints;
   const migrated = parseWorkspace(legacy);
-  assert.equal(migrated.schemaVersion, 4);
+  assert.equal(migrated.schemaVersion, 5);
   assert.deepEqual(migrated.projects, data.projects);
   assert.deepEqual(
     migrated.tasks.map(({ sprint, startDate, ...task }) => task),
@@ -263,7 +263,7 @@ test("IndexedDB migrates legacy saves and leaves unsupported data untouched", as
   void preferences;
   void sprints;
   await rawWrite(legacy);
-  assert.equal((await loadWorkspace()).schemaVersion, 4);
+  assert.equal((await loadWorkspace()).schemaVersion, 5);
   const raw = { schemaVersion: 99, userContent: "Do not overwrite me" };
   await rawWrite(raw);
   await assert.rejects(loadWorkspace(), /newer version/);

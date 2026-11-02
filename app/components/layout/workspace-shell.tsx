@@ -78,6 +78,8 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     dark,
     setDark,
     ready,
+    loading,
+    unreadCount,
   } = useWorkspace();
   const router = useRouter();
   const [mobileNav, setMobileNav] = useState(false);
@@ -154,6 +156,9 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
                     ).length
                   }
                 </span>
+              )}
+              {item.href === "/activity" && unreadCount > 0 && (
+                <span className="nav-count">{unreadCount}</span>
               )}
             </ActiveNavigationLink>
           ))}
@@ -237,10 +242,18 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
             <Link
               className="icon-button notification"
               href="/activity"
-              aria-label="Open activity feed"
+              aria-label={
+                ready
+                  ? `${unreadCount} unread workspace updates. Open activity feed`
+                  : "Open activity feed"
+              }
             >
               <Icon name="bell" />
-              <i />
+              {unreadCount > 0 && (
+                <span className="notification-count" aria-hidden="true">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </Link>
             <span className="avatar small">AM</span>
           </div>
@@ -248,13 +261,20 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         <main className="main-content">
           {error && ready && (
             <div role="alert" className="error-banner">
-              {error}
-              <button onClick={retrySave}>Retry save</button>
+              <div>
+                <strong>Changes have not been saved.</strong>
+                <p>{error} Your edits are still available in this tab.</p>
+              </div>
+              <button onClick={retrySave} disabled={saving}>
+                Retry save
+              </button>
             </div>
           )}
           <div className="save-state" aria-live="polite">
             {!ready
-              ? "Loading saved workspace..."
+              ? loading
+                ? "Loading saved workspace..."
+                : "Workspace could not be loaded"
               : saving
                 ? "Saving changes..."
                 : error

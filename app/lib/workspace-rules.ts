@@ -221,6 +221,16 @@ export function validateWorkspace(data: WorkspaceData) {
   validateRelations(data.tasks);
   validateSprints(data);
   validateMembership(data);
+  unique(
+    data.activity.map((event) => event.id),
+    "Activity updates",
+  );
+  for (const event of data.activity)
+    if (
+      !Number.isFinite(Date.parse(event.date)) ||
+      (event.readAt !== null && !Number.isFinite(Date.parse(event.readAt)))
+    )
+      throw new Error("Activity updates need valid event and read timestamps.");
 }
 function integer(value: unknown) {
   if (typeof value !== "number" || !Number.isInteger(value))
@@ -287,7 +297,8 @@ export function parseWorkspace(input: unknown): WorkspaceData {
     !legacy &&
     raw.schemaVersion !== 2 &&
     raw.schemaVersion !== 3 &&
-    raw.schemaVersion !== 4
+    raw.schemaVersion !== 4 &&
+    raw.schemaVersion !== 5
   )
     throw new Error(
       "This workspace was saved by a newer version of WebNest. Update the app before opening it.",
@@ -296,9 +307,11 @@ export function parseWorkspace(input: unknown): WorkspaceData {
     ? { theme: "light", views: {} }
     : record(raw.preferences);
   let data: WorkspaceData = {
-    schemaVersion: 4,
+    schemaVersion: 5,
     sprints:
-      raw.schemaVersion === 3 || raw.schemaVersion === 4
+      raw.schemaVersion === 3 ||
+      raw.schemaVersion === 4 ||
+      raw.schemaVersion === 5
         ? list(raw.sprints).map(parseSprint)
         : [],
     columns: legacy ? [...statuses] : strings(raw.columns),
@@ -320,7 +333,7 @@ export function parseWorkspace(input: unknown): WorkspaceData {
         color: text(p.color),
         archived: bool(p.archived),
         members:
-          raw.schemaVersion === 4
+          raw.schemaVersion === 4 || raw.schemaVersion === 5
             ? list(p.members).map((value) => {
                 const member = record(value);
                 return {
@@ -343,7 +356,9 @@ export function parseWorkspace(input: unknown): WorkspaceData {
         assignee: text(t.assignee),
         dueDate: text(t.dueDate),
         startDate:
-          raw.schemaVersion === 4 ? text(t.startDate) : text(t.dueDate),
+          raw.schemaVersion === 4 || raw.schemaVersion === 5
+            ? text(t.startDate)
+            : text(t.dueDate),
         labels: text(t.labels),
         sprint: text(t.sprint),
         checklist: list(t.checklist).map((value) => {
@@ -386,12 +401,21 @@ export function parseWorkspace(input: unknown): WorkspaceData {
         id: text(item.id),
         text: text(item.text),
         date: timestamp(item.date),
+        readAt:
+          raw.schemaVersion === 5 && item.readAt !== null
+            ? timestamp(item.readAt)
+            : null,
       };
     }),
   };
-  if (raw.schemaVersion !== 3 && raw.schemaVersion !== 4)
+  if (
+    raw.schemaVersion !== 3 &&
+    raw.schemaVersion !== 4 &&
+    raw.schemaVersion !== 5
+  )
     data = migrateSprintLabels(data);
-  if (raw.schemaVersion !== 4) data = migrateMembership(data);
+  if (raw.schemaVersion !== 4 && raw.schemaVersion !== 5)
+    data = migrateMembership(data);
   validateWorkspace(data);
   return data;
 }

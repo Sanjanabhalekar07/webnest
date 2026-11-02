@@ -33,13 +33,14 @@
 
 ## Milestone 4: quality and delivery
 
-- [ ] Mock service layer with controlled latency and reproducible failure cases
+- [x] Mock service layer with controlled latency, reproducible failures, load retry, and coalesced save recovery
 - [x] Persistent appearance
-- [ ] Notification read state
+- [x] Persistent notification read state, unread badges, bulk actions, and filtering
 - [x] Automated tests for dependency rules, workflow migration, attachment validation, filtering, and IndexedDB persistence
 - [ ] Automated browser tests for shared-view consistency
 - [ ] Browser workflow checks: edit, move, refresh, restart, archive/restore, and delete
 - [ ] Keyboard, screen-reader, mobile, and large-data performance checks
-- [ ] Demo script, architecture notes, limitations, and assessment preparation
+- [x] Demo script, architecture notes, and limitations
+- [ ] Manual assessment walkthrough and live modification/debugging rehearsal
 
 Build changes in reviewable commits. Do not mark workflows verified until they have actually been exercised.

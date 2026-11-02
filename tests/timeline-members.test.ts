@@ -216,7 +216,7 @@ test("version 3 migration retains assignees and frozen sprint reports while addi
     tasks: data.tasks.map(({ startDate, ...task }) => task),
   };
   const migrated = parseWorkspace(legacy);
-  assert.equal(migrated.schemaVersion, 4);
+  assert.equal(migrated.schemaVersion, 5);
   assert.ok(migrated.tasks.every((task) => task.startDate === task.dueDate));
   assert.equal(migrated.tasks[0].assignee, "Morgan Guest");
   assert.ok(

@@ -1,7 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useWorkspace } from "@/app/providers/workspace-provider";
-import { initials, members } from "@/app/lib/model";
 import { percent, isOverdue } from "@/app/lib/task-utils";
 import { Icon } from "../ui/app-icon";
 import { TaskTable } from "../tasks/task-table";
@@ -18,8 +17,8 @@ export function OverviewView() {
   return (
     <>
       <PageHeading
-        title="Let?s make things happen, Alex"
-        description="Here?s what?s happening with your projects today."
+        title="Let's make things happen, Alex"
+        description="Here's what's happening with your projects today."
         overview
       />
       <section className="stats-grid">
@@ -109,7 +108,7 @@ export function OverviewView() {
         </section>
         <section className="panel activity-panel">
           <div className="section-heading">
-            <h2>Team activity</h2>
+            <h2>Workspace activity</h2>
             <button
               className="text-button"
               onClick={() => router.push("/activity")}
@@ -117,10 +116,13 @@ export function OverviewView() {
               View all
             </button>
           </div>
-          {data.activity.slice(0, 4).map((event, index) => (
+          {data.activity.slice(0, 4).map((event) => (
             <div className="activity-item" key={event.id}>
-              <span className={`avatar small avatar-${index % 3}`}>
-                {initials(members[index % 4])}
+              <span
+                className="activity-bullet"
+                title={event.readAt === null ? "Unread update" : "Read update"}
+              >
+                <Icon name="check" size={16} />
               </span>
               <div>
                 <p>{event.text}</p>

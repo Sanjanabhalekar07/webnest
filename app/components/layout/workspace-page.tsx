@@ -5,11 +5,11 @@ import { useWorkspace } from "@/app/providers/workspace-provider";
 
 // Guard the content inside each page so the shared layout always renders its route slot.
 export function WorkspacePage({ children }: { children: ReactNode }) {
-  const { ready, error } = useWorkspace();
+  const { ready, error, loading, retryLoad } = useWorkspace();
 
   if (!ready)
     return (
-      <section className="panel" aria-busy={!error} aria-live="polite">
+      <section className="panel" aria-busy={loading} aria-live="polite">
         <h2>Opening your workspace</h2>
         <p className="muted">
           Getting everything ready for a productive day...
@@ -17,10 +17,7 @@ export function WorkspacePage({ children }: { children: ReactNode }) {
         {error && (
           <div role="alert">
             <p>{error}</p>
-            <button
-              className="primary"
-              onClick={() => window.location.reload()}
-            >
+            <button className="primary" disabled={loading} onClick={retryLoad}>
               Try again
             </button>
           </div>

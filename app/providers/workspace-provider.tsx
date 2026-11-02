@@ -19,7 +19,14 @@ import {
   type Status,
   type TaskViewPreferences,
 } from "../lib/model";
-import { loadWorkspace, saveWorkspace } from "../lib/storage";
+import {
+  createWorkspaceService,
+  createLoadController,
+  demoScenario,
+  type WorkspaceService,
+} from "../lib/workspace-service";
+import { createSaveQueue } from "../lib/save-queue";
+import { unreadActivityCount, markActivity } from "../lib/notification-rules";
 import { newTask } from "../lib/task-utils";
 import {
   validateWorkspace,
@@ -41,44 +48,74 @@ function useWorkspaceState() {
   );
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
   const dataRef = useRef<WorkspaceData | null>(null);
-  const writes = useRef(Promise.resolve());
-  const revision = useRef(0);
-  useEffect(() => {
-    let active = true;
-    loadWorkspace()
+  const mounted = useRef(false);
+  const service = useRef<WorkspaceService | null>(null);
+  const loadRequest = useRef<ReturnType<
+    typeof createLoadController<WorkspaceData>
+  > | null>(null);
+  const loadVersion = useRef(0);
+  const saveQueue = useRef<ReturnType<
+    typeof createSaveQueue<WorkspaceData>
+  > | null>(null);
+  function getService() {
+    if (!service.current) {
+      const configured = Number(process.env.NEXT_PUBLIC_MOCK_LATENCY_MS ?? 350);
+      const latencyMs =
+        Number.isFinite(configured) && configured >= 0 && configured <= 5000
+          ? configured
+          : 350;
+      service.current = createWorkspaceService(undefined, {
+        latencyMs,
+        scenario: demoScenario(
+          window.location.search,
+          process.env.NODE_ENV === "development",
+        ),
+      });
+    }
+    return service.current;
+  }
+  function runLoad(fresh = false) {
+    const version = ++loadVersion.current;
+    setLoading(true);
+    setError("");
+    if (!loadRequest.current)
+      loadRequest.current = createLoadController(() => getService().load());
+    void loadRequest.current
+      .get(fresh)
       .then((saved) => {
-        if (!active) return;
+        if (!mounted.current || version !== loadVersion.current) return;
         dataRef.current = saved;
         setData(saved);
+        setLoading(false);
       })
       .catch((reason: Error) => {
-        if (active) setError(reason.message);
+        if (mounted.current && version === loadVersion.current) {
+          setError(reason.message);
+          setLoading(false);
+        }
       });
+  }
+  useEffect(() => {
+    mounted.current = true;
+    runLoad();
     return () => {
-      active = false;
+      mounted.current = false;
     };
   }, []);
   function persist(next: WorkspaceData) {
-    const currentRevision = ++revision.current;
-    setSaving(true);
-    setError("");
-    writes.current = writes.current
-      .catch(() => {})
-      .then(() => saveWorkspace(next))
-      .then(() => {
-        if (currentRevision === revision.current) {
-          setSaving(false);
-          setError("");
-        }
-      })
-      .catch((reason: Error) => {
-        if (currentRevision === revision.current) {
-          setError(reason.message);
-          setSaving(false);
-        }
-      });
+    if (!saveQueue.current)
+      saveQueue.current = createSaveQueue<WorkspaceData>(
+        (snapshot) => getService().save(snapshot),
+        (state) => {
+          if (!mounted.current) return;
+          setSaving(state.status === "saving");
+          setError(state.error || "");
+        },
+      );
+    saveQueue.current.enqueue(next);
   }
   function update(
     change: (previous: WorkspaceData) => WorkspaceData,
@@ -96,6 +133,7 @@ function useWorkspaceState() {
             id: crypto.randomUUID(),
             text: message,
             date: new Date().toISOString(),
+            readAt: null,
           },
           ...next.activity,
         ].slice(0, 100),
@@ -181,17 +219,22 @@ function useWorkspaceState() {
   }
 
   const projects =
-    data?.schemaVersion === 4
+    data?.schemaVersion === 5
       ? data.projects.filter((project) => !project.archived)
       : [];
   const activeIds = new Set(projects.map((project) => project.id));
   const allTasks =
-    data?.schemaVersion === 4
+    data?.schemaVersion === 5
       ? data.tasks.filter((task) => activeIds.has(task.projectId))
       : [];
   return {
     data,
-    ready: data?.schemaVersion === 4,
+    ready: data?.schemaVersion === 5,
+    loading,
+    retryLoad: () => runLoad(true),
+    unreadCount: data?.schemaVersion === 5 ? unreadActivityCount(data) : 0,
+    setActivityRead: (ids: string[], read: boolean) =>
+      update((previous) => markActivity(previous, ids, read)),
     projects,
     allTasks,
     error,
@@ -217,7 +260,7 @@ type WorkspaceState = ReturnType<typeof useWorkspaceState> & {
 };
 const Context = createContext<WorkspaceState | null>(null);
 const emptyWorkspace: WorkspaceData = {
-  schemaVersion: 4,
+  schemaVersion: 5,
   sprints: [],
   columns: [...statuses],
   preferences: { theme: "light", views: {} },
@@ -241,7 +284,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     setEditingProject,
     update,
   } = state;
-  const data = state.data?.schemaVersion === 4 ? state.data : emptyWorkspace;
+  const data = state.data?.schemaVersion === 5 ? state.data : emptyWorkspace;
   return (
     <Context.Provider value={{ ...state, data }}>
       <div className={`workspace ${dark ? "dark" : ""}`}>

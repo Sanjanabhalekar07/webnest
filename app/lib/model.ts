@@ -86,7 +86,7 @@ export type SprintDraft = Pick<
   "id" | "projectId" | "name" | "goal" | "startDate" | "endDate"
 >;
 export type WorkspaceData = {
-  schemaVersion: 4;
+  schemaVersion: 5;
   sprints: Sprint[];
   columns: string[];
   preferences: {
@@ -95,7 +95,13 @@ export type WorkspaceData = {
   };
   projects: Project[];
   tasks: Task[];
-  activity: { id: string; text: string; date: string }[];
+  activity: ActivityEvent[];
+};
+export type ActivityEvent = {
+  id: string;
+  text: string;
+  date: string;
+  readAt: string | null;
 };
 export const members = [
   "Alex Morgan",
@@ -214,7 +220,7 @@ export function seedData(): WorkspaceData {
     ["brand", "Prepare launch assets", "To do", "Urgent", 7, "Branding"],
   ];
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     sprints: projects.map((project) => ({
       id: `sprint-${project.id}-01`,
       projectId: project.id,
@@ -254,11 +260,13 @@ export function seedData(): WorkspaceData {
     activity: [
       {
         id: "welcome",
+        readAt: null,
         text: "Jamie completed Map the customer journey",
         date: new Date().toISOString(),
       },
       {
         id: "review",
+        readAt: null,
         text: "Taylor moved Create brand guidelines to In review",
         date: new Date(Date.now() - 3600000).toISOString(),
       },
