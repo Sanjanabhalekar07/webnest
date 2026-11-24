@@ -136,16 +136,6 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
             Web<span>Nest</span>
           </span>
         </Link>
-        <div className="workspace-picker">
-          <span className="workspace-icon">S</span>
-          <span>
-            <strong>Studio workspace</strong>
-            <small>
-              Pro plan <span>✦</span>
-            </small>
-          </span>
-          <span className="muted">⌄</span>
-        </div>
         <span className="nav-label">WORKSPACE</span>
         <nav aria-label="Workspace">
           {navigation.map((item) => (

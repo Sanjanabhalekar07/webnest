@@ -2,7 +2,6 @@ import { connectToDatabase } from "./mongodb";
 import { seedData, type WorkspaceData } from "./model";
 import { parseWorkspace } from "./workspace-rules";
 import { recordActiveSprints } from "./sprint-rules";
-import { LegacyWorkspace } from "../models/workspace";
 import { WorkspaceSettings } from "../models/workspace-settings";
 import { ProjectRecord } from "../models/project";
 import { TaskRecord } from "../models/task";
@@ -143,15 +142,6 @@ async function readSeparatedWorkspace(userId: string): Promise<WorkspaceData | n
 
 export async function loadWorkspace(userId: string): Promise<WorkspaceData> {
   await connectToDatabase();
-
-  const legacy = await LegacyWorkspace.findOne({ userId }).lean();
-  if (legacy) {
-    const migrated = recordActiveSprints(parseWorkspace(legacy.data));
-    await persistWorkspace(userId, migrated);
-    await LegacyWorkspace.deleteOne({ _id: legacy._id });
-    return migrated;
-  }
-
   const saved = await readSeparatedWorkspace(userId);
   if (!saved) {
     const initial = recordActiveSprints(parseWorkspace(seedData()));

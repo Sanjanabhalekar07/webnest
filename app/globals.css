@@ -81,6 +81,9 @@ select:focus {
   padding: 0 8px;
   border-radius: 10px;
 }
+.sidebar > .brand {
+  margin-bottom: 22px;
+}
 .brand-mark {
   display: grid;
   place-items: center;
@@ -110,39 +113,6 @@ select:focus {
 .brand-wordmark > span {
   color: var(--purple);
   font-weight: 700;
-}
-.workspace-picker {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  padding: 12px 10px;
-  margin: 32px 0;
-}
-.workspace-picker strong {
-  font-size: 12px;
-  display: block;
-}
-.workspace-picker small {
-  display: block;
-  font-size: 10px;
-  color: var(--muted);
-  margin-top: 5px;
-}
-.workspace-picker > span:last-child {
-  margin-left: auto;
-}
-.workspace-picker small span {
-  color: #805b16;
-  margin-left: 4px;
-}
-.workspace-icon {
-  background: #f2eefb;
-  border-radius: 6px;
-  padding: 8px 10px;
-  color: #8b74ce;
-  font-weight: bold;
 }
 .nav-label {
   font-size: 9px;
