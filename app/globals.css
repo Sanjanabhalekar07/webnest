@@ -57,8 +57,8 @@ select:focus {
 .workspace.dark {
   --bg: #171924;
   --surface: #202330;
-  --text: #eeedf5;
-  --muted: #9a9db1;
+  --text: #f0f1f7;
+  --muted: #b4b8c9;
   --border: #343747;
 }
 .sidebar {
@@ -117,7 +117,7 @@ select:focus {
 .nav-label {
   font-size: 9px;
   font-weight: 700;
-  color: #4b5563;
+  color: var(--muted);
   letter-spacing: 1.6px;
   padding: 0 12px;
   margin-bottom: 12px;
@@ -130,7 +130,7 @@ select:focus {
   width: 100%;
   border-radius: 7px;
   text-align: left;
-  color: #374151;
+  color: var(--text);
   font-weight: 500;
   margin-bottom: 5px;
   font-size: 12px;
@@ -150,6 +150,18 @@ select:focus {
   padding: 2px 6px;
   font-size: 10px;
   margin-left: auto;
+}
+.workspace.dark .nav-item:hover {
+  background: #292d3b;
+  color: #f7f7fb;
+}
+.workspace.dark .nav-item.active {
+  background: #332e4b;
+  color: #c6baff;
+}
+.workspace.dark .nav-count {
+  background: #39334f;
+  color: #d2c7ff;
 }
 .project-label {
   display: flex;
@@ -177,6 +189,13 @@ select:focus {
   border-radius: 9px;
   color: #514660;
   margin-bottom: 20px;
+}
+.workspace.dark .workspace-note {
+  background: #292638;
+  color: #e7e0fa;
+}
+.workspace.dark .workspace-note p {
+  color: #c0bbce;
 }
 .workspace-note > span {
   font-size: 10px;
