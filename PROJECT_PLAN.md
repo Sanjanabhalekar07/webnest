@@ -7,7 +7,7 @@
 - [x] Project CRUD, archive, and restore
 - [x] Task CRUD, assignment, priorities, labels, status, and due date
 - [x] Checklist and comments
-- [x] IndexedDB persistence with sequential writes and retry
+- [x] MongoDB persistence through Mongoose with sequential writes and retry
 - [x] Board, table, calendar, and delivery-date list
 - [x] Search, project/priority filters, derived dashboard reports
 - [x] Activity feed and session appearance toggle
@@ -36,7 +36,7 @@
 - [x] Mock service layer with controlled latency, reproducible failures, load retry, and coalesced save recovery
 - [x] Persistent appearance
 - [x] Persistent notification read state, unread badges, bulk actions, and filtering
-- [x] Automated tests for dependency rules, workflow migration, attachment validation, filtering, and IndexedDB persistence
+- [x] Automated tests for dependency rules, workflow migration, attachment validation, filtering, and workspace serialization
 - [ ] Automated browser tests for shared-view consistency
 - [ ] Browser workflow checks: edit, move, refresh, restart, archive/restore, and delete
 - [ ] Keyboard, screen-reader, mobile, and large-data performance checks

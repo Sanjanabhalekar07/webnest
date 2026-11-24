@@ -1,6 +1,5 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import "fake-indexeddb/auto";
 import { seedData, type WorkspaceData } from "../app/lib/model";
 import {
   markActivity,
@@ -15,7 +14,6 @@ import {
   type WorkspaceRepository,
 } from "../app/lib/workspace-service";
 import { parseWorkspace } from "../app/lib/workspace-rules";
-import { loadWorkspace, saveWorkspace } from "../app/lib/storage";
 
 const instant = async () => {};
 const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
@@ -347,22 +345,22 @@ test("development scenarios are ignored in production and slow requests use the 
   assert.deepEqual(delays, [1500]);
 });
 
-test("notification read state survives IndexedDB reload and failed service saves preserve durable data", async () => {
-  const data = seedData();
-  await saveWorkspace(data);
+test("notification read state survives service reloads and failed saves preserve stored data", async () => {
+  const repo = fakeRepository();
+  const data = repo.read();
   const working = markActivity(
     data,
     [data.activity[0].id],
     true,
     "2026-11-02T12:00:00Z",
   );
-  const service = createWorkspaceService(undefined, {
+  const service = createWorkspaceService(repo.repository, {
     scenario: "save-error",
     latencyMs: 0,
     wait: instant,
   });
   await assert.rejects(service.save(working), /retry saving/);
-  assert.deepEqual(await loadWorkspace(), data);
+  assert.deepEqual(repo.read(), data);
   await service.save(working);
-  assert.deepEqual(await loadWorkspace(), working);
+  assert.deepEqual(repo.read(), working);
 });

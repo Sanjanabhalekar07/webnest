@@ -1,6 +1,5 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import "fake-indexeddb/auto";
 import {
   defaultTaskView,
   seedData,
@@ -15,7 +14,6 @@ import {
   validateAttachment,
   validateWorkspace,
 } from "../app/lib/workspace-rules";
-import { loadWorkspace, saveWorkspace } from "../app/lib/storage";
 
 function sample(): WorkspaceData {
   const data = seedData();
@@ -208,27 +206,7 @@ test("combines filters and sorts matching tasks without mutating the source", ()
   );
 });
 
-async function rawWrite(value: unknown) {
-  await new Promise<void>((resolve, reject) => {
-    const request = indexedDB.open("orbit-workspace", 1);
-    request.onsuccess = () => {
-      const db = request.result,
-        tx = db.transaction("workspace", "readwrite");
-      tx.objectStore("workspace").put(value, "data");
-      tx.oncomplete = () => {
-        db.close();
-        resolve();
-      };
-      tx.onerror = () => {
-        db.close();
-        reject(tx.error);
-      };
-    };
-    request.onerror = () => reject(request.error);
-  });
-}
-test("IndexedDB saves and reloads relationships, custom columns, attachments, and preferences", async () => {
-  await loadWorkspace();
+test("workspace JSON round trips preserve relationships, custom columns, attachments, and preferences", () => {
   const data = sample();
   data.tasks[0].dependencies = [data.tasks[1].id];
   data.tasks[2].parentId = data.tasks[0].id;
@@ -249,23 +227,20 @@ test("IndexedDB saves and reloads relationships, custom columns, attachments, an
       "my-tasks": { ...defaultTaskView, layout: "List", sort: "priority" },
     },
   };
-  await saveWorkspace(data);
-  assert.deepEqual(await loadWorkspace(), data);
+  const restored = parseWorkspace(JSON.parse(JSON.stringify(data)));
+  assert.deepEqual(restored, data);
   const invalid = structuredClone(data);
   invalid.tasks[0].dependencies = ["missing"];
-  await assert.rejects(saveWorkspace(invalid), /same project/);
-  assert.deepEqual(await loadWorkspace(), data);
+  assert.throws(() => parseWorkspace(invalid), /same project/);
 });
-test("IndexedDB migrates legacy saves and leaves unsupported data untouched", async () => {
+test("workspace parsing migrates legacy saves and rejects unsupported data", () => {
   const { schemaVersion, columns, preferences, sprints, ...legacy } = sample();
   void schemaVersion;
   void columns;
   void preferences;
   void sprints;
-  await rawWrite(legacy);
-  assert.equal((await loadWorkspace()).schemaVersion, 5);
+  assert.equal(parseWorkspace(legacy).schemaVersion, 5);
   const raw = { schemaVersion: 99, userContent: "Do not overwrite me" };
-  await rawWrite(raw);
-  await assert.rejects(loadWorkspace(), /newer version/);
-  await assert.rejects(loadWorkspace(), /newer version/);
+  assert.throws(() => parseWorkspace(raw), /newer version/);
+  assert.throws(() => parseWorkspace(raw), /newer version/);
 });

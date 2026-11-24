@@ -8,10 +8,11 @@ Requires Node.js 20.9 or newer and npm.
 
 ```sh
 npm install
+cp .env.example .env.local
 npm run dev
 ```
 
-Open http://localhost:3000. Use `npm run build` for a production build and `npm start` to serve it. System fonts keep builds independent of Google Fonts availability.
+Set `MONGODB_URI` in `.env.local` to a reachable MongoDB database before using sign in or the workspace. The example uses a local MongoDB server at `127.0.0.1:27017`. Open http://localhost:3000. Use `npm run build` for a production build and `npm start` to serve it. System fonts keep builds independent of Google Fonts availability.
 
 ## Implemented
 
@@ -30,12 +31,13 @@ Open http://localhost:3000. Use `npm run build` for a production build and `npm 
 - Project-specific sprint creation, editing, start/completion, bulk backlog planning, and task assignment.
 - Recorded sprint snapshots, an accessible SVG burndown chart and data table, scope/baseline tracking, and frozen completion reports.
 - Project completion, workload, task distribution, and active sprint progress summaries.
-- IndexedDB persistence, schema validation and versioned migration, first-run sample data, loading state, save feedback, and retry on save errors.
+- Mongoose persistence in MongoDB, schema validation, first-run sample data, loading state, save feedback, and retry on save errors.
+- MongoDB-backed accounts with scrypt password hashes, expiring HTTP-only sessions, and per-account workspace documents.
 - A mock asynchronous service with controlled latency, development-only one-shot failures, recoverable load retries, and a coalescing save queue.
 
 ## Current assumptions
 
-The app is a single-browser workspace, initially populated with four sample members. It operates as the sample workspace administrator. Project roles enforce local ownership and assignment rules; they do not provide authenticated authorization or invite real users. There is no authentication, server, or collaboration sync. Data belongs to the current browser profile and origin. Clearing site data deletes the workspace. There is no real attachment upload or external notification service.
+Each account owns an independent workspace document in MongoDB, initially populated with four sample project members. Project roles enforce workspace ownership and assignment rules; they do not invite real users or provide team collaboration. Passwords are hashed on the server, and sessions use HTTP-only cookies. Existing browser-only accounts and IndexedDB workspaces are not imported automatically. There is no real attachment upload or external notification service.
 
 The timeline displays inclusive calendar-day ranges and warns about overlapping prerequisite dates. It does not automatically reschedule dependencies or offer drag-to-resize scheduling; select a bar or task label to edit dates. Fit tasks is capped at a one-year display window; use date navigation to inspect longer ranges. Browser/assistive-technology verification and large-data performance checks remain pending. Workflow configuration is shared across projects. Task order within a column follows the selected sort, rather than manual card ranking.
 
@@ -52,8 +54,12 @@ The timeline displays inclusive calendar-day ranges and warns about overlapping 
 - `app/lib/timeline-rules.ts`: inclusive date geometry, clipping, and dependency/overlap information.
 - `app/components/sprints/`: sprint planning, lifecycle editor, reports, and accessible burndown visualization.
 - `app/lib/model.ts`: shared entities and deterministic first-run sample content (dates are relative to first launch).
-- `app/lib/storage.ts`: IndexedDB database lifecycle and transaction-based load/save operations.
-- `app/lib/workspace-service.ts`: mock load/save requests, controlled latency, structured failures, and a shared initial-load controller.
+- `app/lib/mongodb.ts` and `app/models/`: shared Mongoose connection and MongoDB models for users, sessions, and workspaces.
+- `app/api/`: authenticated account and workspace route handlers.
+- `app/lib/auth-server.ts`: password hashing, HTTP-only session handling, and account operations.
+- `app/lib/storage.ts`: Mongoose workspace reads and writes scoped to the authenticated user.
+- `app/actions/workspace.ts` and `app/actions/auth.ts`: authenticated Server Actions for workspace and account changes.
+- `app/lib/workspace-service.ts`: mock request latency, development-only one-shot failures, structured errors, and a shared initial-load controller.
 - `app/lib/save-queue.ts`: serialized writes, coalescing of waiting snapshots, and observable save/error status.
 - `app/lib/notification-rules.ts`: unread counts and idempotent read/unread updates.
 - `app/globals.css`: workspace tokens, component styles, dark appearance, and responsive layouts.
@@ -62,7 +68,7 @@ All views derive from the same task collection. Mutations update the in-memory s
 
 Dependencies and parents must belong to the same project. Completion edges (dependencies plus subtasks) cannot form cycles. A task cannot become Done until all dependencies and subtasks are Done; reopen completed dependent/parent tasks before reopening prerequisites. Deleting a task unlinks its dependencies and promotes its subtasks to independent tasks. Moving a task to another project is rejected if it would invalidate existing relationships.
 
-Storage schema version 5 migrates versions 1–4 in the existing IndexedDB database, retaining project/task IDs, attachments, relationships, sprint records, frozen reports, and preferences. Previous activity entries initially become unread; new read timestamps persist across reloads. Read-state changes do not create more activity entries. For pre-version-4 workspaces, tasks receive a one-day start/due schedule on their original due date and existing assignees are included in project rosters alongside the sample members, with Alex as Owner. Old sprint labels (versions 1–2) become separate planned sprints within each project, with default dates to review and no invented history. Invalid or newer saved data is rejected without overwriting it. The legacy database name is retained to preserve existing browser data. Attachments store metadata only, and cannot be downloaded or previewed.
+Workspace schema version 5 is validated on each MongoDB load and save. Settings, projects, tasks, sprints, and activity are stored in separate per-user MongoDB collections with typed Mongoose schemas and compound indexes. Existing records in the legacy `workspaces` collection are migrated automatically the first time the workspace is loaded; the legacy record is removed only after the split records are saved. Browser IndexedDB content is not automatically copied to MongoDB. Attachments store metadata only, and cannot be downloaded or previewed.
 
 Every project must retain at least one Owner. Owners and Members can receive tasks; Viewers cannot. Removing an assignee or changing them to Viewer requires explicitly choosing another eligible member for all their tasks. This includes current completed tasks, while frozen sprint reports retain their original recorded assignees. Custom project member names are supported and appear in assignee choices, filters, workload reports, and avatars. New projects initially include the current sample admin as Owner.
 
@@ -76,9 +82,9 @@ Completing a sprint freezes task titles, assignees, statuses, and the final coun
 
 ## Checks and demonstration
 
-`npm test` runs domain and IndexedDB tests with Node's test runner, tsx, and fake-indexeddb. Tests use an isolated in-memory database, not browser data. `npm run build` checks the production routes. `npm run format:check` checks formatting.
+`npm test` runs domain and workspace serialization tests with Node's test runner and tsx. `npm run build` checks the production routes. `npm run format:check` checks formatting.
 
-The mock service defaults to 350 ms for loads and saves. Copy `.env.example` to `.env.local`, change `NEXT_PUBLIC_MOCK_LATENCY_MS` (0–5000), and restart Next.js to change the delay. Validation failures happen before storage writes. Service errors distinguish unavailable requests, invalid data, and storage access failures.
+The mock service defaults to 350 ms for loads and saves. Change `NEXT_PUBLIC_MOCK_LATENCY_MS` (0–5000) in `.env.local` to adjust the delay. Validation failures happen before MongoDB writes. Service errors distinguish unavailable requests, invalid data, and database access failures.
 
 During `npm run dev`, fully load or reload a URL with `?demo=slow`, `?demo=load-error`, or `?demo=save-error` to reproduce a slow request or a one-shot failure. Scenarios are selected once per mounted workspace, so ordinary client navigation does not re-arm them. **Try again** retries a failed load without reloading the page; **Retry save** preserves and resubmits all edits. A full reload re-arms the URL scenario. These query parameters are ignored in production. See [docs/DEMO.md](docs/DEMO.md) for a review walkthrough and failure-recovery checks.
 
@@ -99,6 +105,6 @@ Browser interaction and assistive-technology checks are still pending; the brows
 
 ## Remaining milestones
 
-Navigation uses real URLs: `/`, `/tasks`, `/projects`, `/projects/[projectId]`, `/sprints`, `/calendar`, `/reports`, `/activity`, and `/search?q=...`. Each page imports its own feature component. The shared route-group layout retains workspace data and pending saves during navigation. Direct visits load the same IndexedDB workspace.
+Navigation uses real URLs: `/`, `/tasks`, `/projects`, `/projects/[projectId]`, `/sprints`, `/calendar`, `/reports`, `/activity`, and `/search?q=...`. Each page imports its own feature component. The shared route-group layout retains workspace data and pending saves during navigation. Direct visits load the signed-in user's MongoDB workspace.
 
 See [PROJECT_PLAN.md](PROJECT_PLAN.md) for the remaining implementation and validation work.

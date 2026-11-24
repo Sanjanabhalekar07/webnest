@@ -32,7 +32,7 @@ export function WorkspaceAccess({ children }: { children: ReactNode }) {
           {ready ? (
             <div>
               <strong>Taking you to sign in…</strong>
-              <p>Your local projects will be waiting for you.</p>
+              <p>Your projects are saved to your account.</p>
               <Link className="auth-link" href="/login">
                 Continue to sign in
               </Link>

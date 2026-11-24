@@ -5,7 +5,7 @@ These are manual verification steps, not a claim that browser checks have passed
 ## Preparation
 
 1. Run `npm install`, `npm test`, and `npm run dev`.
-2. Open the printed local URL. Wait for **All changes saved locally** before refreshing during the walkthrough.
+2. Open the printed local URL. Wait for **All changes saved** before refreshing during the walkthrough.
 3. Create a project named **Review demo**. It starts with Alex Morgan as Owner. Add Jamie Chen as a Member through the project's **Members** button.
 
 ## Shared task state and relationships
@@ -51,4 +51,4 @@ Simulation query parameters only apply in development, once per mounted workspac
 - Test large task sets and long dependency chains; record measured performance before claiming readiness.
 - Rehearse a small change, such as adding another filter or changing a validation rule, and explain the model, schema migration, tests, and shared state flow.
 
-Automated coverage includes schema migrations, IndexedDB round trips, relationship/role rules, sprint history, date geometry, notification state, request failures, and save-queue ordering/coalescing. Browser behavior remains a separate verification step.
+Automated coverage includes schema parsing, workspace JSON serialization, relationship/role rules, sprint history, date geometry, notification state, request failures, and save-queue ordering/coalescing. Browser behavior remains a separate verification step.

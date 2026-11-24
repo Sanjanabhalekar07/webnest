@@ -10,23 +10,26 @@ export function AuthScreen() {
   const { login, signUp, user, ready } = useAuth();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
 
   useEffect(() => {
     if (ready && user) router.replace("/");
   }, [ready, router, user]);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    setPending(true);
+    setError("");
     try {
       if (mode === "signup")
-        signUp({
+        await signUp({
           name: String(form.get("name") || ""),
           email: String(form.get("email") || ""),
           password: String(form.get("password") || ""),
         });
       else
-        login(
+        await login(
           String(form.get("email") || ""),
           String(form.get("password") || ""),
         );
@@ -35,6 +38,8 @@ export function AuthScreen() {
       setError(
         reason instanceof Error ? reason.message : "Unable to continue.",
       );
+    } finally {
+      setPending(false);
     }
   }
 
@@ -103,8 +108,12 @@ export function AuthScreen() {
               {error}
             </p>
           )}
-          <button className="primary" type="submit">
-            {mode === "login" ? "Sign in" : "Create account"}
+          <button className="primary" type="submit" disabled={pending}>
+            {pending
+              ? "Please wait…"
+              : mode === "login"
+                ? "Sign in"
+                : "Create account"}
           </button>
         </form>
         <p className="auth-switch">
@@ -121,8 +130,7 @@ export function AuthScreen() {
           </button>
         </p>
         <p className="auth-note">
-          Demo accounts are stored only in this browser. Do not use a real
-          password.
+          Your account and workspace data are stored securely in your database.
         </p>
       </section>
     </main>

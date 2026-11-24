@@ -47,6 +47,12 @@ export function Icon({ name, size = 20 }: { name: string; size?: number }) {
       </>
     ),
     close: <path d="m6 6 12 12M6 18 18 6" />,
+    logout: (
+      <>
+        <path d="M10 17l5-5-5-5m5 5H3" />
+        <path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" />
+      </>
+    ),
     board: (
       <>
         <rect x="3" y="3" width="18" height="18" rx="3" />

@@ -7,24 +7,32 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type { Account } from "../lib/auth";
 import {
-  currentAccount,
-  login as authenticate,
-  logout as clearSession,
-  readAuthState,
-  renameAccount,
-  signUp as createAccount,
-  type Account,
-  type AuthState,
-} from "../lib/auth";
+  authenticate,
+  createAccount,
+  getCurrentUser,
+  logoutAccount,
+  updateAccountProfile,
+} from "../actions/auth";
 
 type AuthContextValue = {
   ready: boolean;
   user: Account | null;
-  signUp: (input: { name: string; email: string; password: string }) => Account;
-  login: (email: string, password: string) => Account;
-  rename: (name: string) => Account;
-  logout: () => void;
+  signUp: (input: {
+    name: string;
+    email: string;
+    password: string;
+  }) => Promise<Account>;
+  login: (email: string, password: string) => Promise<Account>;
+  updateProfile: (input: {
+    name: string;
+    email: string;
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }) => Promise<Account>;
+  logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -36,36 +44,38 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AuthState>({
-    accounts: [],
-    currentUserId: null,
-  });
+  const [user, setUser] = useState<Account | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setState(readAuthState(window.localStorage));
-    setReady(true);
+    void getCurrentUser()
+      .then(setUser)
+      .catch(() => setUser(null))
+      .finally(() => setReady(true));
   }, []);
 
   const value: AuthContextValue = {
     ready,
-    user: currentAccount(state),
-    signUp: (input) => {
-      const result = createAccount(window.localStorage, input);
-      setState(result.state);
-      return result.account;
+    user,
+    signUp: async (input) => {
+      const account = await createAccount(input);
+      setUser(account);
+      return account;
     },
-    login: (email, password) => {
-      const result = authenticate(window.localStorage, email, password);
-      setState(result.state);
-      return result.account;
+    login: async (email, password) => {
+      const account = await authenticate(email, password);
+      setUser(account);
+      return account;
     },
-    rename: (name) => {
-      const result = renameAccount(window.localStorage, name);
-      setState(result.state);
-      return result.account;
+    updateProfile: async (input) => {
+      const account = await updateAccountProfile(input);
+      setUser(account);
+      return account;
     },
-    logout: () => setState(clearSession(window.localStorage)),
+    logout: async () => {
+      await logoutAccount();
+      setUser(null);
+    },
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

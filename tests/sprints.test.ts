@@ -1,6 +1,5 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import "fake-indexeddb/auto";
 import {
   seedData,
   type SprintDraft,
@@ -21,7 +20,6 @@ import {
   saveTask,
   validateWorkspace,
 } from "../app/lib/workspace-rules";
-import { loadWorkspace, saveWorkspace } from "../app/lib/storage";
 
 const day1 = "2026-11-02T12:00:00Z",
   day2 = "2026-11-03T12:00:00Z",
@@ -289,13 +287,11 @@ test("corrupt sprint snapshots and invalid completed memberships are rejected", 
   assert.throws(() => parseWorkspace(closed), /final snapshot/);
 });
 
-test("closed sprint history and task assignments survive IndexedDB round trips", async () => {
+test("closed sprint history and task assignments survive workspace serialization", () => {
   const closed = completeSprint(
     startSprint(planned(), "sprint", day1),
     "sprint",
     day2,
   );
-  await loadWorkspace();
-  await saveWorkspace(closed);
-  assert.deepEqual(await loadWorkspace(), closed);
+  assert.deepEqual(parseWorkspace(JSON.parse(JSON.stringify(closed))), closed);
 });

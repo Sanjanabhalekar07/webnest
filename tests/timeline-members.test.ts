@@ -1,6 +1,5 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import "fake-indexeddb/auto";
 import {
   defaultAssignee,
   seedData,
@@ -14,7 +13,6 @@ import {
   validateWorkspace,
 } from "../app/lib/workspace-rules";
 import { completeSprint, startSprint } from "../app/lib/sprint-rules";
-import { loadWorkspace, saveWorkspace } from "../app/lib/storage";
 
 function sample(): WorkspaceData {
   const data = seedData();
@@ -236,8 +234,7 @@ test("version 3 migration retains assignees and frozen sprint reports while addi
   assert.deepEqual(reassigned.sprints[0], frozen);
 });
 
-test("dates and member roles survive persistence, and invalid assignments cannot overwrite saved data", async () => {
-  await loadWorkspace();
+test("dates and member roles survive workspace serialization, and invalid assignments are rejected", () => {
   const data = sample();
   data.projects[0].members.push({ name: "Riley Patel", role: "Member" });
   data.tasks[0] = {
@@ -246,12 +243,11 @@ test("dates and member roles survive persistence, and invalid assignments cannot
     startDate: "2026-11-02",
     dueDate: "2026-11-10",
   };
-  await saveWorkspace(data);
-  assert.deepEqual(await loadWorkspace(), data);
+  assert.deepEqual(parseWorkspace(JSON.parse(JSON.stringify(data))), data);
   const invalid = structuredClone(data);
   invalid.projects[0].members.find(
     (member) => member.name === "Riley Patel",
   )!.role = "Viewer";
-  await assert.rejects(saveWorkspace(invalid), /Owner or Member/);
-  assert.deepEqual(await loadWorkspace(), data);
+  assert.throws(() => validateWorkspace(invalid), /Owner or Member/);
+  assert.deepEqual(parseWorkspace(JSON.parse(JSON.stringify(data))), data);
 });

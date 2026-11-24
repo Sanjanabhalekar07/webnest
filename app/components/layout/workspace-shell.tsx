@@ -84,10 +84,12 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     loading,
     unreadCount,
   } = useWorkspace();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
   const [mobileNav, setMobileNav] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
   const displayName = user?.name || "Account";
   const displayInitials = accountInitials(displayName);
 
@@ -218,6 +220,32 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
               <small>{user?.email || "Workspace member"}</small>
             </span>
           </button>
+          {logoutError && (
+            <p className="sidebar-logout-error" role="alert">
+              {logoutError}
+            </p>
+          )}
+          <button
+            className="nav-item sidebar-logout"
+            disabled={loggingOut}
+            onClick={async () => {
+              setLoggingOut(true);
+              setLogoutError("");
+              try {
+                await logout();
+                router.replace("/login");
+              } catch (reason) {
+                setLogoutError(
+                  reason instanceof Error ? reason.message : "Log out failed.",
+                );
+              } finally {
+                setLoggingOut(false);
+              }
+            }}
+          >
+            <Icon name="logout" />
+            {loggingOut ? "Logging out…" : "Log out"}
+          </button>
         </div>
       </aside>
       <div className="main-shell">
@@ -296,7 +324,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
                 ? "Saving changes..."
                 : error
                   ? "Changes are not saved"
-                  : "All changes saved locally"}
+                  : "All changes saved"}
           </div>
           {children}
           <footer className="page-footer">

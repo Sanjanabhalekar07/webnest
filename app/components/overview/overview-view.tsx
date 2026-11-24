@@ -6,7 +6,9 @@ import { Icon } from "../ui/app-icon";
 import { TaskTable } from "../tasks/task-table";
 import { ProjectCard } from "../projects/project-card";
 import { PageHeading } from "../layout/page-heading";
+import { useAuth } from "@/app/providers/auth-provider";
 export function OverviewView() {
+  const { user } = useAuth();
   const { data, projects, allTasks, setEditingTask, setEditingProject } =
     useWorkspace();
   const router = useRouter();
@@ -17,7 +19,7 @@ export function OverviewView() {
   return (
     <>
       <PageHeading
-        title="Let's make things happen, Alex"
+        title={`Let's make things happen${user?.name ? `, ${user.name}` : ""}`}
         description="Here's what's happening with your projects today."
         overview
       />

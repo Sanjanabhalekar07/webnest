@@ -1,6 +1,6 @@
 import type { WorkspaceData } from "./model";
 import { parseWorkspace } from "./workspace-rules";
-import { loadWorkspace, saveWorkspace } from "./storage";
+import { loadWorkspace, saveWorkspace } from "../actions/workspace";
 
 export type DemoScenario = "normal" | "slow" | "load-error" | "save-error";
 type Operation = "load" | "save";
@@ -72,7 +72,7 @@ export function createWorkspaceService(
         "STORAGE",
         reason instanceof Error
           ? reason.message
-          : "The local workspace could not be accessed.",
+          : "The workspace database could not be accessed.",
       );
     }
   }
